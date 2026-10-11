@@ -1,22 +1,23 @@
 export function Section({
   id,
+  label,
   title,
   intro,
-  className = "",
   children,
 }: {
   id: string;
+  label: string;
   title: string;
   intro?: string;
-  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={`border-t-2 border-ink px-5 py-20 md:py-28 ${className}`}>
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-12 grid gap-4 md:mb-16 md:grid-cols-[5fr_7fr] md:gap-10">
-          <h2 className="display text-4xl leading-none md:text-5xl">{title}</h2>
-          {intro ? <p className="max-w-xl text-lg leading-relaxed text-muted md:pt-2">{intro}</p> : null}
+    <section id={id} className="px-5 py-20 md:py-28">
+      <div className="mx-auto max-w-7xl">
+        <div className="reveal mb-12 max-w-2xl md:mb-14">
+          <p className="label">{`// ${label}`}</p>
+          <h2 className="mt-4 text-[clamp(2rem,4vw,3.25rem)] font-bold leading-[1.08] tracking-[-0.03em]">{title}</h2>
+          {intro ? <p className="mt-5 text-lg leading-relaxed text-muted">{intro}</p> : null}
         </div>
         {children}
       </div>
