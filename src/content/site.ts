@@ -59,7 +59,7 @@ export type Project = {
   description: string;
   // Sin logo se muestra el nombre como texto
   logo?: StaticImageData;
-  // Alto máximo del logo dentro de su recuadro (por defecto 86%)
+  // Alto máximo del logo dentro de su recuadro (por defecto 62%)
   logoMaxHeight?: string;
   href?: string;
   domain?: string;
@@ -79,7 +79,7 @@ export const projects: Project[] = [
     kind: "Plataforma web",
     description: "Gestión de delivery propio para restaurantes, sin comisiones por pedido.",
     logo: rutafoodLogo,
-    logoMaxHeight: "70%",
+    logoMaxHeight: "50%",
     href: "https://rutafood.cl",
     domain: "rutafood.cl",
   },

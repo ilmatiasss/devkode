@@ -7,8 +7,7 @@ import { Services } from "@/components/Services";
 
 export default function Home() {
   return (
-    // La página va enmarcada con líneas laterales, como una ficha técnica
-    <div className="mx-auto max-w-[1280px] md:border-x md:border-line">
+    <>
       <Header />
       <main>
         <Hero />
@@ -17,6 +16,6 @@ export default function Home() {
         <Process />
         <Contact />
       </main>
-    </div>
+    </>
   );
 }

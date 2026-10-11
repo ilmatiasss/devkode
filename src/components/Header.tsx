@@ -3,8 +3,8 @@ import { Logo } from "./Logo";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-bg">
-      <div className="flex h-16 items-center justify-between px-5 md:px-8">
+    <header className="sticky top-0 z-50 border-b border-line bg-bg/90 backdrop-blur-sm">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-5 md:px-8">
         <a href="#inicio" aria-label="Ir al inicio">
           <Logo />
         </a>

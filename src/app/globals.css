@@ -65,20 +65,4 @@
   .btn-primary:hover {
     background: var(--color-fg);
   }
-
-  .caret {
-    animation: blink 1.1s steps(1) infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .caret {
-      animation: none;
-    }
-  }
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
 }

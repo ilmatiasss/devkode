@@ -76,17 +76,22 @@ export function DotGlobe({ className = "" }: { className?: string }) {
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+      // El globo va centrado detrás del eslogan y es el protagonista de la portada
       const wide = w >= 1024;
-      cx = w * (wide ? 0.66 : 0.5);
-      cy = h * (wide ? 0.5 : 0.3);
-      radius = wide ? Math.min(h * 0.5, w * 0.34) : Math.min(w * 0.46, h * 0.28);
-      // En pantallas chicas el globo queda detrás del texto: más tenue
-      dim = wide ? 1 : 0.55;
+      cx = w * 0.5;
+      cy = h * 0.5;
+      radius = Math.min(h * 0.54, w * (wide ? 0.56 : 0.62));
+      // En pantallas chicas queda justo detrás del texto: un poco más tenue
+      dim = wide ? 1 : 0.95;
 
-      const small = w < 640;
-      dots = sphere(small ? 750 : 1900);
-      strandA = strand(small ? 70 : 110, 0);
-      strandB = strand(small ? 70 : 110, Math.PI);
+      // La cantidad de puntos crece con el tamaño del globo para que siempre se vea denso
+      // (separación aproximada entre puntos: s píxeles)
+      const gap = wide ? 20 : w < 640 ? 15 : 18;
+      const count = Math.min(3600, Math.round((2 * Math.PI * radius * radius) / (gap * gap)));
+      const hebra = Math.max(70, Math.min(170, Math.round(radius / 3)));
+      dots = sphere(count);
+      strandA = strand(hebra, 0);
+      strandB = strand(hebra, Math.PI);
     };
 
     const frame = (t: number) => {
