@@ -6,7 +6,7 @@ export function Projects() {
     <Section
       id="proyectos"
       title="Proyectos"
-      intro="En los que estamos trabajando ahora."
+      intro="Lo que hemos hecho y en lo que estamos trabajando ahora."
       className="bg-paper-2"
     >
       <ul className="border-b border-ink/25">
@@ -18,7 +18,13 @@ export function Projects() {
             <div>
               <h3 className="display text-4xl leading-none md:text-5xl">{project.name}</h3>
               <p className="mt-3 text-[15px] text-muted">
-                {project.kind} · <span className="text-accent">{project.status}</span>
+                {project.kind}
+                {project.status ? (
+                  <>
+                    {" · "}
+                    <span className="text-accent">{project.status}</span>
+                  </>
+                ) : null}
               </p>
             </div>
 

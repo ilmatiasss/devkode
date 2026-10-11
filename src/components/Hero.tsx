@@ -1,7 +1,18 @@
 import { projects, site } from "@/content/site";
 
+// "A", "A y B", "A, B y C", con los nombres destacados
+function NameList({ names }: { names: string[] }) {
+  return names.map((name, i) => (
+    <span key={name}>
+      <span className="whitespace-nowrap font-semibold text-ink">{name}</span>
+      {i < names.length - 2 ? ", " : i === names.length - 2 ? " y " : ""}
+    </span>
+  ));
+}
+
 export function Hero() {
-  const names = projects.map((p) => p.name);
+  const done = projects.filter((p) => !p.status).map((p) => p.name);
+  const building = projects.filter((p) => p.status).map((p) => p.name);
 
   return (
     <section id="inicio" className="px-5 pb-20 pt-14 md:pb-28 md:pt-24">
@@ -20,13 +31,19 @@ export function Hero() {
 
           <div className="md:pt-1">
             <p className="max-w-lg text-lg leading-relaxed text-muted">
-              Ahora mismo estamos construyendo{" "}
-              {names.map((name, i) => (
-                <span key={name}>
-                  <span className="whitespace-nowrap font-semibold text-ink">{name}</span>
-                  {i < names.length - 2 ? ", " : i === names.length - 2 ? " y " : "."}
-                </span>
-              ))}
+              {done.length > 0 ? (
+                <>
+                  Hicimos <NameList names={done} />
+                  {building.length > 0 ? ", y ahora estamos construyendo " : "."}
+                </>
+              ) : (
+                "Ahora mismo estamos construyendo "
+              )}
+              {building.length > 0 ? (
+                <>
+                  <NameList names={building} />.
+                </>
+              ) : null}
             </p>
             <p className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-lg font-semibold">
               <a href="#proyectos" className="link">

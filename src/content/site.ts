@@ -53,7 +53,8 @@ export const services: { title: string; description: string }[] = [
 export const projects: {
   name: string;
   kind: string;
-  status: string;
+  // Solo para proyectos en curso. Cuando uno se termina, borra esta línea.
+  status?: "En desarrollo";
   description: string;
   href?: string;
   domain?: string;
@@ -61,13 +62,11 @@ export const projects: {
   {
     name: "RutaFood",
     kind: "Plataforma web",
-    status: "En desarrollo",
     description: "Plataforma para que los restaurantes gestionen la logística de sus despachos.",
   },
   {
     name: "Fruterra",
     kind: "Tienda online",
-    status: "En desarrollo",
     description: "Tienda online de frutas y verduras.",
     href: "https://fruterra.cl",
     domain: "fruterra.cl",
