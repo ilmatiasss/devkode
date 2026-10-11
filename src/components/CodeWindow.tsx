@@ -71,9 +71,9 @@ export function CodeWindow({ className = "" }: { className?: string }) {
         <div className="flex items-center justify-between border-t border-white/[0.06] bg-surface px-4 py-2 font-mono text-[11px] text-muted">
           <span className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-accent" />
-            main
+            En línea
           </span>
-          <span>TypeScript · Next.js</span>
+          <span>tu-negocio.cl</span>
         </div>
       </div>
     </div>

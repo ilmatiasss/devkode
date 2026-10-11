@@ -1,6 +1,7 @@
 // Todo el contenido de la página vive aquí: edita este archivo y se actualiza el sitio.
 import type { StaticImageData } from "next/image";
 import fruterraLogo from "@/assets/logos/fruterra.webp";
+import rutafoodLogo from "@/assets/logos/rutafood.webp";
 import solisLogo from "@/assets/logos/solis-racing.webp";
 
 export const site = {
@@ -58,6 +59,8 @@ export type Project = {
   description: string;
   // Sin logo se muestra el nombre como texto
   logo?: StaticImageData;
+  // Alto máximo del logo dentro de su recuadro (por defecto 72%)
+  logoMaxHeight?: string;
   // Color del brillo detrás del logo
   tint: string;
   href?: string;
@@ -77,8 +80,12 @@ export const projects: Project[] = [
   {
     name: "RutaFood",
     kind: "Plataforma web",
-    description: "Gestión de la logística de despachos para restaurantes.",
+    description: "Gestión de delivery propio para restaurantes, sin comisiones por pedido.",
+    logo: rutafoodLogo,
+    logoMaxHeight: "54%",
     tint: "#ff5a1f",
+    href: "https://rutafood.cl",
+    domain: "rutafood.cl",
   },
   {
     name: "Solis Racing",
@@ -90,20 +97,6 @@ export const projects: Project[] = [
     href: "https://solisracingparts.cl",
     domain: "solisracingparts.cl",
   },
-];
-
-export const tech = [
-  "React",
-  "Next.js",
-  "TypeScript",
-  "Tailwind CSS",
-  "Node.js",
-  "Shopify",
-  "WooCommerce",
-  "Webpay Plus",
-  "Mercado Pago",
-  "Flow",
-  "Vercel",
 ];
 
 export const steps: { title: string; description: string }[] = [

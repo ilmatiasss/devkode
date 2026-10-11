@@ -25,7 +25,8 @@ export function Projects() {
                   src={project.logo}
                   alt={`Logo de ${project.name}`}
                   sizes="220px"
-                  className="relative h-auto max-h-[72%] w-auto max-w-[62%] object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="relative h-auto w-auto max-w-[62%] object-contain transition-transform duration-300 group-hover:scale-105"
+                  style={{ maxHeight: project.logoMaxHeight ?? "72%" }}
                 />
               ) : (
                 <span className="relative text-3xl font-bold tracking-tight">{project.name}</span>
