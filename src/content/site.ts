@@ -3,13 +3,13 @@
 export const site = {
   name: "DevKode",
   url: "https://devkode.cl",
-  tagline: "Desarrollo web a medida",
+  title: "DevKode | Desarrollo web a medida en Chile",
   description:
-    "Creo tiendas online, landing pages, webs corporativas, aplicaciones web y software a medida para negocios en Chile.",
+    "Diseño y programo tiendas online, landing pages, webs corporativas, aplicaciones web y software a medida para negocios en Chile.",
   location: "Chile",
 };
 
-// TODO: reemplaza por tus datos reales. El botón de WhatsApp solo aparece si defines `whatsapp`
+// TODO: reemplaza por tus datos reales. El enlace de WhatsApp solo aparece si defines `whatsapp`
 // (formato internacional sin "+", ej. "56912345678").
 export const contact = {
   email: "tu-correo@ejemplo.cl",
@@ -17,126 +17,96 @@ export const contact = {
 };
 
 export const nav = [
-  { label: "Servicios", href: "#servicios" },
+  { label: "Qué hago", href: "#servicios" },
   { label: "Proyectos", href: "#proyectos" },
-  { label: "Tecnologías", href: "#tecnologias" },
-  { label: "Proceso", href: "#proceso" },
-  { label: "Contacto", href: "#contacto" },
+  { label: "Cómo trabajo", href: "#proceso" },
 ];
 
-export type ServiceIcon = "store" | "layout" | "building" | "app" | "code";
-
-export const services: {
-  icon: ServiceIcon;
-  title: string;
-  description: string;
-  points: string[];
-}[] = [
+export const services: { title: string; description: string }[] = [
   {
-    icon: "store",
     title: "Tiendas online",
     description:
-      "Ecommerce hecho para vender: catálogo, carrito, pagos y despacho, adaptado a cómo funciona tu negocio.",
-    points: ["Catálogo y stock", "Pagos locales", "Panel de administración"],
+      "Catálogo, carrito, pagos con Webpay o Mercado Pago y despacho. Además, un panel para que tú mismo cargues productos y revises pedidos, sin tener que llamarme cada vez.",
   },
   {
-    icon: "layout",
     title: "Landing pages",
     description:
-      "Páginas rápidas y enfocadas en una sola acción: captar clientes, lanzar un producto o promocionar una campaña.",
-    points: ["Carga veloz", "Formularios y WhatsApp", "Lista para campañas"],
+      "Una página con un solo objetivo: que te escriban, que se inscriban o que compren. Pensada para tus campañas en redes sociales y Google.",
   },
   {
-    icon: "building",
     title: "Webs corporativas",
     description:
-      "El sitio de tu empresa o marca, claro, ordenado y fácil de actualizar, con la imagen que mereces.",
-    points: ["Diseño propio", "Optimizado para SEO", "Responsive"],
+      "Quiénes son, qué hacen y cómo contactarlos, bien contado y fácil de actualizar. Es lo primero que revisa un cliente antes de llamarte.",
   },
   {
-    icon: "app",
     title: "Aplicaciones web",
     description:
-      "Plataformas con usuarios, paneles y lógica de negocio para operar tu servicio directamente desde el navegador.",
-    points: ["Cuentas y roles", "Paneles y reportes", "Integraciones"],
+      "Sistemas que se usan desde el navegador, con usuarios, permisos y paneles. RutaFood, por ejemplo, ordena la logística de despachos de restaurantes.",
   },
   {
-    icon: "code",
     title: "Software a medida",
     description:
-      "Cuando una herramienta genérica no alcanza, desarrollo el sistema que resuelve tu problema específico.",
-    points: ["Análisis del problema", "Automatización", "Escalable"],
+      "Para cuando ninguna herramienta del mercado calza con la forma en que trabajas. Lo diseñamos en torno a tu proceso.",
   },
 ];
-
-export type ProjectStatus = "En desarrollo";
 
 export const projects: {
   name: string;
   kind: string;
+  status: string;
   description: string;
-  status: ProjectStatus;
   href?: string;
   domain?: string;
-  tags: string[];
 }[] = [
   {
     name: "RutaFood",
     kind: "Plataforma web",
-    description:
-      "Plataforma para que los restaurantes gestionen la logística de sus despachos en un solo lugar.",
     status: "En desarrollo",
-    tags: ["Logística", "Restaurantes", "Aplicación web"],
+    description: "Plataforma para que los restaurantes gestionen la logística de sus despachos.",
   },
   {
     name: "Fruterra",
     kind: "Tienda online",
-    description: "Tienda online de frutas y verduras.",
     status: "En desarrollo",
+    description: "Tienda online de frutas y verduras.",
     href: "https://fruterra.cl",
     domain: "fruterra.cl",
-    tags: ["Ecommerce", "Alimentos"],
   },
   {
     name: "Solis Racing",
     kind: "Tienda online",
-    description:
-      "Tienda online de autopartes de alto rendimiento y programación de ECU, desarrollada junto a Diego Solis, reconocido en el motorsport chileno por sus récords en Time Attack.",
     status: "En desarrollo",
+    description:
+      "Autopartes de performance y programación de ECU. La estoy haciendo junto a Diego Solis, conocido en el automovilismo chileno por sus récords en Time Attack.",
     href: "https://solisracingparts.cl",
     domain: "solisracingparts.cl",
-    tags: ["Ecommerce", "Autopartes", "Performance"],
   },
 ];
 
-// Las tecnologías más habituales; quita las que no uses.
 export const stack: { group: string; items: string[] }[] = [
   { group: "Frontend", items: ["React", "Next.js", "TypeScript", "Tailwind CSS"] },
-  { group: "Backend", items: ["Node.js", "PostgreSQL", "APIs REST"] },
+  { group: "Backend", items: ["Node.js", "APIs REST"] },
   { group: "Ecommerce", items: ["Shopify", "WooCommerce"] },
-  { group: "Pagos", items: ["Webpay Plus", "Mercado Pago", "Flow", "Stripe"] },
-  { group: "Infraestructura", items: ["Vercel", "Git y GitHub"] },
+  { group: "Pagos", items: ["Webpay Plus", "Mercado Pago", "Flow"] },
+  { group: "Publicación", items: ["Vercel", "GitHub"] },
 ];
 
-export const process: { title: string; description: string }[] = [
+export const steps: { title: string; description: string }[] = [
   {
     title: "Conversamos",
-    description:
-      "Entiendo tu negocio, qué quieres lograr y qué necesitas, y te propongo el camino más simple para llegar ahí.",
+    description: "Me cuentas qué necesitas y qué quieres lograr. Si con algo simple te basta, te lo digo.",
   },
   {
-    title: "Diseño",
+    title: "Propuesta",
     description:
-      "Defino la estructura y el diseño del sitio. Lo revisamos juntos antes de escribir código.",
+      "Te envío por escrito el alcance, los plazos y la cotización, para que sepas exactamente qué vas a recibir.",
   },
   {
-    title: "Desarrollo",
-    description:
-      "Construyo el sitio con tecnología moderna y te muestro avances para que veas cómo va tomando forma.",
+    title: "Diseño y desarrollo",
+    description: "Te muestro avances durante el proceso, así puedes opinar antes de que algo quede terminado.",
   },
   {
-    title: "Lanzamiento y soporte",
-    description:
-      "Publico el sitio, te dejo todo funcionando y sigo disponible para mejoras y mantenimiento.",
+    title: "Publicación",
+    description: "Dejo el sitio funcionando en tu dominio y sigo disponible para cambios y mantención.",
   },
 ];

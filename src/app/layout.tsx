@@ -4,10 +4,10 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
-  title: `${site.name} | ${site.tagline}`,
+  title: site.title,
   description: site.description,
   openGraph: {
-    title: `${site.name} | ${site.tagline}`,
+    title: site.title,
     description: site.description,
     url: site.url,
     siteName: site.name,
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0d12",
+  themeColor: "#f1ece2",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

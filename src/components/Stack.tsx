@@ -1,30 +1,21 @@
 import { stack } from "@/content/site";
-import { SectionHeading } from "./SectionHeading";
+import { Section } from "./Section";
 
 export function Stack() {
   return (
-    <section id="tecnologias" className="border-t border-line py-24">
-      <div className="mx-auto max-w-6xl px-5">
-        <SectionHeading eyebrow="Tecnologías" title="Herramientas modernas y probadas">
-          Elijo la tecnología según lo que cada proyecto necesita, priorizando velocidad, seguridad y que sea fácil de
-          mantener.
-        </SectionHeading>
-
-        <dl className="divide-y divide-line rounded-xl border border-line bg-surface">
-          {stack.map((row) => (
-            <div key={row.group} className="grid gap-3 p-5 sm:grid-cols-[180px_1fr] sm:items-center">
-              <dt className="font-mono text-sm text-muted">{row.group}</dt>
-              <dd className="flex flex-wrap gap-2">
-                {row.items.map((item) => (
-                  <span key={item} className="rounded-md border border-line bg-surface-2 px-3 py-1.5 text-sm">
-                    {item}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
+    <Section
+      id="herramientas"
+      title="Herramientas"
+      intro="Elijo según lo que necesita cada proyecto. Estas son las que más uso."
+    >
+      <dl className="grid border-b border-line md:grid-cols-2 md:gap-x-10">
+        {stack.map((row) => (
+          <div key={row.group} className="flex items-baseline justify-between gap-6 border-t border-line py-4">
+            <dt className="text-muted">{row.group}</dt>
+            <dd className="text-right text-lg">{row.items.join(", ")}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
   );
 }

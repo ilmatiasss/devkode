@@ -1,50 +1,45 @@
 import { contact, site } from "@/content/site";
 
 export function Contact() {
-  const subject = encodeURIComponent("Quiero cotizar un proyecto web");
-  const whatsappText = encodeURIComponent("Hola, vi tu página de DevKode y quiero cotizar un proyecto.");
+  const subject = encodeURIComponent("Proyecto web");
+  const whatsappText = encodeURIComponent("Hola, vi la página de DevKode y quiero cotizar un proyecto.");
 
   return (
-    <section id="contacto" className="border-t border-line py-24">
-      <div className="mx-auto max-w-6xl px-5">
-        <div className="rounded-2xl border border-line bg-surface p-8 sm:p-12">
-          <p className="mb-3 font-mono text-xs uppercase tracking-widest text-accent">Contacto</p>
-          <h2 className="max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            ¿Tienes un proyecto en mente? Conversemos.
-          </h2>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">
-            Cuéntame qué necesitas y te respondo con una propuesta. Sin compromiso.
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href={`mailto:${contact.email}?subject=${subject}`}
-              className="rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              Escríbeme por correo
-            </a>
-            {contact.whatsapp ? (
-              <a
-                href={`https://wa.me/${contact.whatsapp}?text=${whatsappText}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-line bg-surface-2 px-5 py-3 text-sm font-semibold transition-colors hover:border-accent-dim focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                WhatsApp
-              </a>
-            ) : null}
-          </div>
-
-          <p className="mt-6 font-mono text-sm text-muted">{contact.email}</p>
-        </div>
-      </div>
-
-      <footer className="mx-auto mt-16 flex max-w-6xl flex-col items-center justify-between gap-2 px-5 text-sm text-muted sm:flex-row">
-        <p>
-          © {new Date().getFullYear()} {site.name}. Hecho en {site.location}.
+    <section id="contacto" className="bg-ink px-5 pb-10 pt-20 text-paper md:pt-28">
+      <div className="mx-auto max-w-6xl">
+        <h2 className="display max-w-4xl text-balance text-[clamp(2.5rem,7vw,5.5rem)] leading-[0.95]">
+          Cuéntame qué necesitas.
+        </h2>
+        <p className="mt-6 max-w-xl text-lg leading-relaxed text-on-ink-muted">
+          Aunque todavía no lo tengas del todo claro. Lo vemos juntos.
         </p>
-        <p className="font-mono">{"</>"} con Next.js y Tailwind CSS</p>
-      </footer>
+
+        <div className="mt-12 flex flex-col items-start gap-5">
+          <a
+            href={`mailto:${contact.email}?subject=${subject}`}
+            className="display break-all text-2xl underline decoration-accent-light decoration-2 underline-offset-[0.3em] transition-colors hover:text-accent-light sm:text-3xl md:text-4xl"
+          >
+            {contact.email}
+          </a>
+          {contact.whatsapp ? (
+            <a
+              href={`https://wa.me/${contact.whatsapp}?text=${whatsappText}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg font-semibold underline decoration-accent-light decoration-2 underline-offset-[0.25em] transition-colors hover:text-accent-light"
+            >
+              O por WhatsApp ↗<span className="sr-only"> (se abre en una pestaña nueva)</span>
+            </a>
+          ) : null}
+        </div>
+
+        <footer className="mt-24 flex flex-col justify-between gap-2 border-t border-paper/20 pt-6 text-[15px] text-on-ink-muted sm:flex-row">
+          <p>{site.name}</p>
+          <p>
+            {site.location}, {new Date().getFullYear()}
+          </p>
+        </footer>
+      </div>
     </section>
   );
 }
