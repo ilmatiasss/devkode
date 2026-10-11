@@ -1,9 +1,13 @@
 import { site } from "@/content/site";
 import { CodeWindow } from "./CodeWindow";
+import { DotGlobe } from "./DotGlobe";
 
 export function Hero() {
   return (
-    <section id="inicio" className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
+    <section id="inicio" className="relative isolate grid grid-cols-1 overflow-hidden lg:grid-cols-[1.1fr_1fr]">
+      {/* Globo animado: ocupa toda la portada, detrás del contenido */}
+      <DotGlobe className="pointer-events-none absolute inset-0 -z-10 size-full [mask-image:linear-gradient(to_bottom,black_60%,transparent)] lg:[mask-image:linear-gradient(to_right,transparent_8%,black_46%)]" />
+
       <div className="min-w-0 px-5 pb-14 pt-14 md:px-8 md:pb-20 md:pt-20 lg:border-r lg:border-line">
         <p className="font-mono text-xs text-muted">Desarrollo web a medida · {site.location}</p>
 

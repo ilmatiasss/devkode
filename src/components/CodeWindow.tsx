@@ -31,7 +31,7 @@ export function CodeWindow({ className = "" }: { className?: string }) {
     <div
       role="img"
       aria-label="Editor de código con un ejemplo de tienda online hecha a medida"
-      className={`overflow-hidden rounded-[3px] border border-line bg-[#0e0e10] ${className}`}
+      className={`overflow-hidden rounded-[3px] border border-line bg-[#0e0e10]/85 ${className}`}
     >
       <div className="flex items-center border-b border-line font-mono text-xs">
         <span className="border-r border-line bg-bg px-4 py-2.5 text-fg">tu-negocio.tsx</span>
