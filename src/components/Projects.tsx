@@ -6,59 +6,54 @@ export function Projects() {
   return (
     <Section
       id="proyectos"
-      label="Proyectos"
-      title="Proyectos que hemos desarrollado."
+      index="01"
+      title="Proyectos"
       intro="Tiendas y plataformas que diseñamos y programamos desde cero."
     >
-      <div className="grid gap-5 md:grid-cols-3">
+      <ul className="border-t border-line">
         {projects.map((project) => (
-          <article key={project.name} className="card reveal group flex flex-col overflow-hidden">
-            <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-line bg-[#0b0c0f]">
-              <div aria-hidden="true" className="bg-grid absolute inset-0 opacity-70" />
-              <div
-                aria-hidden="true"
-                className="absolute left-1/2 top-1/2 size-56 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-35 blur-3xl transition-opacity duration-300 group-hover:opacity-60"
-                style={{ background: project.tint }}
-              />
+          <li
+            key={project.name}
+            className="grid grid-cols-[84px_1fr] gap-x-5 gap-y-4 border-b border-line py-7 sm:grid-cols-[128px_1fr] md:gap-x-8 lg:grid-cols-[128px_1fr_auto]"
+          >
+            <div className="flex aspect-square items-center justify-center rounded-[3px] border border-line bg-surface">
               {project.logo ? (
                 <Image
                   src={project.logo}
                   alt={`Logo de ${project.name}`}
-                  sizes="220px"
-                  className="relative h-auto w-auto max-w-[62%] object-contain transition-transform duration-300 group-hover:scale-105"
-                  style={{ maxHeight: project.logoMaxHeight ?? "72%" }}
+                  sizes="128px"
+                  className="h-auto w-auto max-w-[86%] object-contain"
+                  style={{ maxHeight: project.logoMaxHeight ?? "86%" }}
                 />
               ) : (
-                <span className="relative text-3xl font-bold tracking-tight">{project.name}</span>
+                <span className="text-sm font-semibold">{project.name}</span>
               )}
             </div>
 
-            <div className="flex flex-1 flex-col gap-3 p-6">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-xl font-bold tracking-tight">{project.name}</h3>
-                {project.status ? (
-                  <span className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 font-mono text-[11px] text-accent">
-                    {project.status}
-                  </span>
-                ) : null}
-              </div>
-              <p className="font-mono text-xs text-muted">{project.kind}</p>
-              <p className="leading-relaxed text-muted">{project.description}</p>
+            <div className="min-w-0">
+              <h3 className="text-2xl font-medium tracking-tight">{project.name}</h3>
+              <p className="mt-1 font-mono text-xs text-muted">{project.kind}</p>
+              <p className="mt-3 max-w-xl leading-relaxed text-muted">{project.description}</p>
+            </div>
+
+            <div className="col-start-2 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[13px] lg:col-start-3 lg:flex-col lg:items-end lg:justify-between lg:py-1">
+              <span className={project.status ? "text-accent" : "text-muted"}>
+                {project.status ?? "En línea"}
+              </span>
               {project.href ? (
                 <a
                   href={project.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-auto inline-flex items-center gap-1.5 pt-2 font-mono text-sm text-fg transition-colors hover:text-accent"
+                  className="underline decoration-line underline-offset-4 transition-colors hover:text-accent hover:decoration-accent"
                 >
-                  {project.domain} <span aria-hidden="true">↗</span>
-                  <span className="sr-only">(se abre en una pestaña nueva)</span>
+                  {project.domain} ↗<span className="sr-only"> (se abre en una pestaña nueva)</span>
                 </a>
               ) : null}
             </div>
-          </article>
+          </li>
         ))}
-      </div>
+      </ul>
     </Section>
   );
 }

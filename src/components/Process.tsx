@@ -3,24 +3,16 @@ import { Section } from "./Section";
 
 export function Process() {
   return (
-    <Section
-      id="proceso"
-      label="Cómo trabajamos"
-      title="Sin sorpresas, de principio a fin."
-      intro="Sabes en todo momento en qué está tu proyecto."
-    >
-      <ol className="relative grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <span
-          aria-hidden="true"
-          className="absolute left-0 right-0 top-[2.15rem] hidden h-px bg-gradient-to-r from-accent/70 via-line to-transparent lg:block"
-        />
+    <Section id="proceso" index="03" title="Cómo trabajamos" intro="Sabes en todo momento en qué está tu proyecto.">
+      <ol className="grid border-t border-line sm:grid-cols-2 xl:grid-cols-4">
         {steps.map((step, index) => (
-          <li key={step.title} className="reveal relative">
-            <span className="relative z-10 inline-flex size-[4.3rem] items-center justify-center rounded-2xl border border-line bg-surface font-mono text-lg text-accent">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <h3 className="mt-6 text-xl font-bold tracking-tight">{step.title}</h3>
-            <p className="mt-3 max-w-xs leading-relaxed text-muted">{step.description}</p>
+          <li
+            key={step.title}
+            className="border-b border-line py-7 sm:px-6 sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(odd)]:pl-0 xl:border-b-0 xl:border-r xl:pl-6! xl:first:pl-0! xl:last:border-r-0"
+          >
+            <span className="font-mono text-xs text-accent">Paso {index + 1}</span>
+            <h3 className="mt-4 text-lg font-medium">{step.title}</h3>
+            <p className="mt-2 leading-relaxed text-muted">{step.description}</p>
           </li>
         ))}
       </ol>

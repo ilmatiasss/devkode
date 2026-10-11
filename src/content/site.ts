@@ -59,10 +59,8 @@ export type Project = {
   description: string;
   // Sin logo se muestra el nombre como texto
   logo?: StaticImageData;
-  // Alto máximo del logo dentro de su recuadro (por defecto 72%)
+  // Alto máximo del logo dentro de su recuadro (por defecto 86%)
   logoMaxHeight?: string;
-  // Color del brillo detrás del logo
-  tint: string;
   href?: string;
   domain?: string;
 };
@@ -73,7 +71,6 @@ export const projects: Project[] = [
     kind: "Tienda online",
     description: "Frutas y verduras frescas con despacho a domicilio en Santiago.",
     logo: fruterraLogo,
-    tint: "#3fbf4f",
     href: "https://fruterra.cl",
     domain: "fruterra.cl",
   },
@@ -82,8 +79,7 @@ export const projects: Project[] = [
     kind: "Plataforma web",
     description: "Gestión de delivery propio para restaurantes, sin comisiones por pedido.",
     logo: rutafoodLogo,
-    logoMaxHeight: "54%",
-    tint: "#ff5a1f",
+    logoMaxHeight: "70%",
     href: "https://rutafood.cl",
     domain: "rutafood.cl",
   },
@@ -93,7 +89,6 @@ export const projects: Project[] = [
     status: "En desarrollo",
     description: "Autopartes de performance y programación de ECU, junto a Diego Solis.",
     logo: solisLogo,
-    tint: "#e5261b",
     href: "https://solisracingparts.cl",
     domain: "solisracingparts.cl",
   },
