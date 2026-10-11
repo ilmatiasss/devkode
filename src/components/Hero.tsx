@@ -14,13 +14,13 @@ export function Hero() {
 
         <div className="mt-12 grid gap-8 border-t border-line pt-8 md:mt-16 md:grid-cols-[5fr_7fr] md:gap-10">
           <p className="max-w-md text-xl leading-snug md:text-2xl">
-            Diseño y programo tiendas online, landing pages, webs corporativas, aplicaciones web y software para
+            Diseñamos y programamos tiendas online, landing pages, webs corporativas, aplicaciones web y software para
             negocios en Chile.
           </p>
 
           <div className="md:pt-1">
             <p className="max-w-lg text-lg leading-relaxed text-muted">
-              Ahora mismo estoy construyendo{" "}
+              Ahora mismo estamos construyendo{" "}
               {names.map((name, i) => (
                 <span key={name}>
                   <span className="whitespace-nowrap font-semibold text-ink">{name}</span>
@@ -33,7 +33,7 @@ export function Hero() {
                 Ver proyectos
               </a>
               <a href="#contacto" className="link">
-                Cuéntame tu idea
+                Cuéntanos tu idea
               </a>
             </p>
           </div>

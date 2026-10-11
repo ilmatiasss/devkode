@@ -8,7 +8,7 @@ export function Contact() {
     <section id="contacto" className="bg-ink px-5 pb-10 pt-20 text-paper md:pt-28">
       <div className="mx-auto max-w-6xl">
         <h2 className="display max-w-4xl text-balance text-[clamp(2.5rem,7vw,5.5rem)] leading-[0.95]">
-          Cuéntame qué necesitas.
+          Cuéntanos qué necesitas.
         </h2>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-on-ink-muted">
           Aunque todavía no lo tengas del todo claro. Lo vemos juntos.

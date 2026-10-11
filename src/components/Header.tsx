@@ -15,7 +15,7 @@ export function Header() {
             </a>
           ))}
           <a href="#contacto" className="link font-semibold">
-            Escríbeme
+            Escríbenos
           </a>
         </nav>
       </div>

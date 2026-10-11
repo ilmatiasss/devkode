@@ -6,7 +6,7 @@ export function Stack() {
     <Section
       id="herramientas"
       title="Herramientas"
-      intro="Elijo según lo que necesita cada proyecto. Estas son las que más uso."
+      intro="Elegimos según lo que necesita cada proyecto. Estas son las que más usamos."
     >
       <dl className="grid border-b border-line md:grid-cols-2 md:gap-x-10">
         {stack.map((row) => (

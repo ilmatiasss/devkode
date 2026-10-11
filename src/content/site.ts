@@ -5,7 +5,7 @@ export const site = {
   url: "https://devkode.cl",
   title: "DevKode | Desarrollo web a medida en Chile",
   description:
-    "Diseño y programo tiendas online, landing pages, webs corporativas, aplicaciones web y software a medida para negocios en Chile.",
+    "Diseñamos y programamos tiendas online, landing pages, webs corporativas, aplicaciones web y software a medida para negocios en Chile.",
   location: "Chile",
 };
 
@@ -19,14 +19,14 @@ export const contact = {
 export const nav = [
   { label: "Qué hago", href: "#servicios" },
   { label: "Proyectos", href: "#proyectos" },
-  { label: "Cómo trabajo", href: "#proceso" },
+  { label: "Cómo trabajamos", href: "#proceso" },
 ];
 
 export const services: { title: string; description: string }[] = [
   {
     title: "Tiendas online",
     description:
-      "Catálogo, carrito, pagos con Webpay o Mercado Pago y despacho. Además, un panel para que tú mismo cargues productos y revises pedidos, sin tener que llamarme cada vez.",
+      "Catálogo, carrito, pagos con Webpay o Mercado Pago y despacho. Además, un panel para que tú mismo cargues productos y revises pedidos, sin tener que llamarnos cada vez.",
   },
   {
     title: "Landing pages",
@@ -77,7 +77,7 @@ export const projects: {
     kind: "Tienda online",
     status: "En desarrollo",
     description:
-      "Autopartes de performance y programación de ECU. La estoy haciendo junto a Diego Solis, conocido en el automovilismo chileno por sus récords en Time Attack.",
+      "Autopartes de performance y programación de ECU. La estamos haciendo junto a Diego Solis, conocido en el automovilismo chileno por sus récords en Time Attack.",
     href: "https://solisracingparts.cl",
     domain: "solisracingparts.cl",
   },
@@ -94,19 +94,19 @@ export const stack: { group: string; items: string[] }[] = [
 export const steps: { title: string; description: string }[] = [
   {
     title: "Conversamos",
-    description: "Me cuentas qué necesitas y qué quieres lograr. Si con algo simple te basta, te lo digo.",
+    description: "Nos cuentas qué necesitas y qué quieres lograr. Si con algo simple te basta, te lo decimos.",
   },
   {
     title: "Propuesta",
     description:
-      "Te envío por escrito el alcance, los plazos y la cotización, para que sepas exactamente qué vas a recibir.",
+      "Te enviamos por escrito el alcance, los plazos y la cotización, para que sepas exactamente qué vas a recibir.",
   },
   {
     title: "Diseño y desarrollo",
-    description: "Te muestro avances durante el proceso, así puedes opinar antes de que algo quede terminado.",
+    description: "Te mostramos avances durante el proceso, así puedes opinar antes de que algo quede terminado.",
   },
   {
     title: "Publicación",
-    description: "Dejo el sitio funcionando en tu dominio y sigo disponible para cambios y mantención.",
+    description: "Dejamos el sitio funcionando en tu dominio y seguimos disponibles para cambios y mantención.",
   },
 ];

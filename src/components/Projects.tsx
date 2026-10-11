@@ -6,7 +6,7 @@ export function Projects() {
     <Section
       id="proyectos"
       title="Proyectos"
-      intro="En los que estoy trabajando ahora."
+      intro="En los que estamos trabajando ahora."
       className="bg-paper-2"
     >
       <ul className="border-b border-ink/25">
