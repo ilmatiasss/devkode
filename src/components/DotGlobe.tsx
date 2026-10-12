@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { sphere, strand } from "@/lib/dots";
 
-// Globo de puntos que gira lentamente. Dos hebras naranjas lo recorren de polo a polo
+// Globo de puntos que gira lentamente. Dos hebras de color de acento lo recorren de polo a polo
 // enroscándose como una doble hélice de ADN, unidas por travesaños. La torsión "respira"
 // con el tiempo, así que la hélice se aprieta y se afloja.
 

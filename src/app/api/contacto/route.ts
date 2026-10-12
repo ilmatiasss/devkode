@@ -17,10 +17,14 @@ const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "").trim().slice(0, max) : "";
 const oneLine = (value: unknown, max: number) => text(value, max).replace(/\s*[\r\n]+\s*/g, " ");
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Sin comas, comillas, paréntesis ni signos que permitan colar más destinatarios en el encabezado
+const EMAIL = /^[^\s@<>(),;:"\\[\]]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+
+// Un mensaje legítimo pesa unos pocos KB; todo lo que pase de esto se rechaza sin procesarlo
+const MAX_BODY = 16 * 1024;
 
 // Límite simple por IP: 5 envíos por hora. Vive en la memoria de cada instancia, así que
-// frena el abuso básico pero no reemplaza una protección más fuerte.
+// frena el abuso básico pero no reemplaza una protección más fuerte (regla de Vercel Firewall).
 const hits = new Map<string, number[]>();
 const WINDOW = 60 * 60 * 1000;
 const MAX_PER_WINDOW = 5;
@@ -36,14 +40,37 @@ function limited(ip: string) {
   return recent.length > MAX_PER_WINDOW;
 }
 
+// Solo se aceptan envíos hechos desde esta misma página. Los navegadores siempre indican el
+// origen en un POST; si no coincide con el sitio, se rechaza (evita que otra web use el formulario).
+function sameOrigin(request: Request) {
+  if (request.headers.get("sec-fetch-site") === "cross-site") return false;
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === request.headers.get("host");
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
   if (!user || !pass) return json({ error: "no_configurado" }, 503);
 
+  if (!sameOrigin(request)) return json({ error: "origen_no_permitido" }, 403);
+  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+    return json({ error: "tipo_no_soportado" }, 415);
+  }
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return json({ error: "muy_grande" }, 413);
+
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (raw.length > MAX_BODY) return json({ error: "muy_grande" }, 413);
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("no es un objeto");
+    body = parsed as Record<string, unknown>;
   } catch {
     return json({ error: "invalido" }, 400);
   }
@@ -92,11 +119,11 @@ export async function POST(request: Request) {
       ].join("\n"),
     });
   } catch (error) {
-    // Se informa solo el tipo de falla (códigos como EAUTH, ETIMEDOUT o ESOCKET), nunca el mensaje
-    // del servidor ni las credenciales. Sirve para saber por qué falla sin abrir los registros.
+    // La causa (códigos como EAUTH, ETIMEDOUT o ESOCKET) queda solo en los registros de Vercel,
+    // nunca el mensaje del servidor ni las credenciales. Al visitante no se le revela nada interno.
     const { code, responseCode, command } = error as { code?: string; responseCode?: number; command?: string };
     console.error("contacto: no se pudo enviar el correo", { code, responseCode, command });
-    return json({ error: "envio_fallido", motivo: code ?? "desconocido", respuesta: responseCode ?? null }, 502);
+    return json({ error: "envio_fallido" }, 502);
   }
 
   return json({ ok: true });

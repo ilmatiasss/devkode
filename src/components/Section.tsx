@@ -1,4 +1,4 @@
-// Sección a todo el ancho: etiqueta con una línea naranja y un título grande
+// Sección a todo el ancho: etiqueta con una línea de acento y un título grande
 export function Section({
   id,
   label,

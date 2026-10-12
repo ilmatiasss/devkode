@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: site.title,
   description: site.description,
+  alternates: { canonical: "/" },
   openGraph: {
     title: site.title,
     description: site.description,
@@ -13,6 +14,13 @@ export const metadata: Metadata = {
     siteName: site.name,
     locale: "es_CL",
     type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: `${site.name}: desarrollo web a medida en Chile` }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: site.title,
+    description: site.description,
+    images: ["/og.png"],
   },
 };
 

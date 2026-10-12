@@ -127,6 +127,10 @@ export function ContactForm({ projectTypes, email }: { projectTypes: string[]; e
           {status === "sending" ? "Enviando…" : "Pedir cotización"} <span aria-hidden="true">→</span>
         </button>
 
+        <p className="mt-4 max-w-md text-xs leading-relaxed opacity-75">
+          Usamos tus datos solo para responder esta solicitud. No los compartimos ni te enviamos publicidad.
+        </p>
+
         <div aria-live="polite">
           {status === "error" ? (
             <p className="mt-4 bg-bg p-4 text-fg">

@@ -1,4 +1,4 @@
-// Marca: una D grande con una k pequeña pegada a su curva, sobre un cuadrado naranja
+// Marca: una D grande con una k pequeña pegada a su curva, sobre un cuadrado del color de acento
 export function Logo() {
   return (
     <span className="flex items-center gap-2.5">
