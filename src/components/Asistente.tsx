@@ -1,222 +1,262 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
-import type { Orientacion } from "@/content/asistente";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import type { Mensaje, Respuesta } from "@/content/asistente";
+import { LogoMark } from "./Logo";
 
-type Estado = "reposo" | "analizando" | "listo" | "error";
+const saludo =
+  "¡Hola! Cuéntame qué tienes en mente y vemos juntos qué necesitaría tu proyecto: una tienda, una página, un sistema… No importa si todavía no lo tienes claro.";
+const inicio = ["Quiero vender online", "Necesito un sistema para mi negocio", "Una página para mi empresa", "No sé por dónde partir"];
+const MAX_TURNOS = 10;
 
-const ejemplos = [
-  "Quiero vender mis productos online y despachar a todo Chile.",
-  "Necesito un sistema para gestionar pedidos y repartos de mi negocio.",
-  "Quiero una página para mostrar mi empresa y recibir consultas.",
-];
-
-const errores: Record<number, string> = {
-  400: "Cuéntanos un poco más, al menos una frase sobre lo que necesitas.",
-  422: "No logramos entender qué proyecto web necesitas. Cuéntanos qué quieres lograr con tu sitio.",
-  429: "Hiciste varias consultas seguidas. Inténtalo de nuevo en un rato, o pídenos la cotización directo.",
+const fallos: Record<number, string> = {
+  429: "Hemos conversado bastante por ahora. Lo mejor es que me dejes armada la cotización o nos escribas directo.",
 };
+const fallo = "No pude responderte en este momento. Inténtalo otra vez, o pídenos la cotización directo y lo vemos juntos.";
+
+function Burbuja({ rol, children }: { rol: Mensaje["rol"]; children: ReactNode }) {
+  if (rol === "usuario") {
+    return (
+      <p className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-[15px] leading-relaxed text-on-accent [overflow-wrap:anywhere]">
+        {children}
+      </p>
+    );
+  }
+  return (
+    <div className="flex items-end gap-2.5">
+      <span className="mb-0.5 shrink-0">
+        <LogoMark size={24} />
+      </span>
+      <div className="max-w-[88%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-bg px-4 py-2.5 text-[15px] leading-relaxed text-fg [overflow-wrap:anywhere]">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function Asistente({ ia, formEnabled, email }: { ia: boolean; formEnabled: boolean; email: string }) {
-  const [descripcion, setDescripcion] = useState("");
-  const [estado, setEstado] = useState<Estado>("reposo");
-  const [mensajeError, setMensajeError] = useState("");
-  const [resultado, setResultado] = useState<Orientacion | null>(null);
-  const resultadoRef = useRef<HTMLDivElement>(null);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [meta, setMeta] = useState<Respuesta | null>(null);
+  const [texto, setTexto] = useState("");
+  const [escribiendo, setEscribiendo] = useState(false);
+  const [aviso, setAviso] = useState("");
+  const listaRef = useRef<HTMLDivElement>(null);
+  const campoRef = useRef<HTMLTextAreaElement>(null);
 
-  async function orientar(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (estado === "analizando") return;
-    setEstado("analizando");
+  const turnos = mensajes.filter((m) => m.rol === "usuario").length;
+  const agotado = turnos >= MAX_TURNOS && !escribiendo;
+  const esperaAlVisitante = mensajes.length === 0 || mensajes[mensajes.length - 1].rol === "asistente";
+  const sugerencias = escribiendo || !esperaAlVisitante || agotado ? [] : mensajes.length === 0 ? inicio : (meta?.sugerencias ?? []);
+  const puedeCotizar = turnos >= 1 && esperaAlVisitante && !escribiendo;
+
+  // La conversación se desplaza dentro de su ventana, nunca mueve la página
+  useEffect(() => {
+    const lista = listaRef.current;
+    if (!lista) return;
+    const reducir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    lista.scrollTo({ top: lista.scrollHeight, behavior: reducir ? "auto" : "smooth" });
+  }, [mensajes, escribiendo, aviso]);
+
+  // El campo crece con lo que se escribe, hasta un máximo
+  useEffect(() => {
+    const campo = campoRef.current;
+    if (!campo) return;
+    campo.style.height = "auto";
+    campo.style.height = `${Math.min(campo.scrollHeight, 128)}px`;
+  }, [texto]);
+
+  async function enviar(contenido: string) {
+    const limpio = contenido.trim();
+    if (!limpio || escribiendo || agotado) return;
+    const anteriores = mensajes;
+    const historia: Mensaje[] = [...anteriores, { rol: "usuario", texto: limpio }];
+    setMensajes(historia);
+    setTexto("");
+    setAviso("");
+    setEscribiendo(true);
     try {
       const response = await fetch("/api/asistente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descripcion }),
+        body: JSON.stringify({ mensajes: historia }),
       });
       if (!response.ok) {
-        setMensajeError(errores[response.status] ?? "No pudimos orientarte ahora. Pídenos la cotización directo y lo vemos juntos.");
-        setEstado("error");
+        // Se devuelve el mensaje al campo para que se pueda reintentar sin perder lo escrito
+        setMensajes(anteriores);
+        setTexto(limpio);
+        setAviso(fallos[response.status] ?? fallo);
         return;
       }
-      const data: { orientacion: Orientacion } = await response.json();
-      setResultado(data.orientacion);
-      setEstado("listo");
-      // Lleva la vista y el foco al resultado, para quien usa lector de pantalla o el celular
-      requestAnimationFrame(() => {
-        resultadoRef.current?.focus({ preventScroll: true });
-        resultadoRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
+      const data: { respuesta: Respuesta } = await response.json();
+      setMensajes([...historia, { rol: "asistente", texto: data.respuesta.texto }]);
+      setMeta(data.respuesta);
     } catch {
-      setMensajeError("No pudimos orientarte ahora. Pídenos la cotización directo y lo vemos juntos.");
-      setEstado("error");
+      setMensajes(anteriores);
+      setTexto(limpio);
+      setAviso(fallo);
+    } finally {
+      setEscribiendo(false);
     }
   }
 
-  const esenciales = resultado?.modulos.filter((m) => m.prioridad === "esencial") ?? [];
-  const recomendados = resultado?.modulos.filter((m) => m.prioridad === "recomendado") ?? [];
+  function alTeclear(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      void enviar(texto);
+    }
+  }
 
   // El resumen que viaja al formulario de cotización (o al correo, si no hay formulario)
-  const resumenParaCotizar = () => {
-    if (!resultado) return "";
-    return [
-      `Mi idea: ${descripcion}`,
+  const resumenParaCotizar = () =>
+    [
+      "Conversación con el asistente de la página:",
+      ...mensajes.filter((m) => m.rol === "usuario").map((m) => `- ${m.texto}`),
       "",
-      "Orientación del asistente (sin valores):",
-      `Tipo de proyecto: ${resultado.proyecto}`,
-      `Esencial: ${esenciales.map((m) => m.titulo).join(", ") || "por definir"}`,
-      recomendados.length ? `Recomendado para después: ${recomendados.map((m) => m.titulo).join(", ")}` : "",
+      meta ? `Tipo de proyecto que entendió el asistente: ${meta.proyecto}` : "",
+      meta?.funciones.length ? `Funciones que podría necesitar: ${meta.funciones.map((f) => f.titulo).join(", ")}` : "",
     ]
-      .filter((linea, i, todas) => linea !== "" || todas[i - 1] !== "")
+      .filter((linea, i, todas) => linea !== "" || (i > 0 && todas[i - 1] !== ""))
       .join("\n")
       .slice(0, 3000);
-  };
 
   function cotizar() {
-    if (!resultado) return;
-    window.dispatchEvent(new CustomEvent("devkode:brief", { detail: { type: resultado.proyecto, message: resumenParaCotizar() } }));
+    window.dispatchEvent(new CustomEvent("devkode:brief", { detail: { type: meta?.proyecto ?? "Aún no lo sé", message: resumenParaCotizar() } }));
     document.getElementById("contacto")?.scrollIntoView({ behavior: "smooth" });
   }
 
   function reiniciar() {
-    setResultado(null);
-    setEstado("reposo");
-    setMensajeError("");
+    setMensajes([]);
+    setMeta(null);
+    setAviso("");
+    setTexto("");
   }
 
   const mailto = `mailto:${email}?subject=${encodeURIComponent("Proyecto web")}&body=${encodeURIComponent(resumenParaCotizar())}`;
-  const accion = "btn btn-primary";
+  const botonCotizar = "rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-fg";
 
   return (
-    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
-      <form onSubmit={orientar} className="min-w-0 self-start">
-        <label htmlFor="idea" className="text-sm font-medium text-fg">
-          Cuéntanos tu idea
-        </label>
-        <textarea
-          id="idea"
-          required
-          minLength={15}
-          maxLength={800}
-          rows={6}
-          value={descripcion}
-          onChange={(e) => setDescripcion(e.target.value)}
-          placeholder="Qué quieres hacer, para quién, qué necesitas que haga tu sitio…"
-          className="mt-2 block w-full resize-y border border-line bg-surface px-4 py-3 text-fg placeholder:text-muted"
-        />
-        <div className="mt-1 flex justify-between text-xs text-muted">
-          <span>Entre más detalle, mejor la orientación.</span>
-          <span aria-hidden="true">{descripcion.length}/800</span>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Ejemplos para empezar">
-          {ejemplos.map((ejemplo) => (
-            <button
-              key={ejemplo}
-              type="button"
-              onClick={() => setDescripcion(ejemplo)}
-              className="border border-line px-3 py-1.5 text-left text-xs text-muted transition-colors hover:border-accent hover:text-fg"
-            >
-              {ejemplo}
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.5fr_0.5fr] lg:gap-14">
+      <div className="flex h-[min(36rem,80svh)] min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface">
+        <div className="flex items-center gap-3 border-b border-line px-4 py-3.5 md:px-5">
+          <LogoMark size={30} />
+          <div>
+            <p className="text-sm font-medium text-fg">Asistente de DevKode</p>
+            <p className="text-xs text-muted">{ia ? "Con inteligencia artificial" : "Asistente guiado"}</p>
+          </div>
+          {mensajes.length > 0 ? (
+            <button type="button" onClick={reiniciar} className="ml-auto text-xs text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg">
+              Nueva conversación
             </button>
-          ))}
+          ) : null}
         </div>
 
-        <button type="submit" disabled={estado === "analizando"} className={`${accion} mt-6 disabled:cursor-wait disabled:opacity-60`}>
-          {estado === "analizando" ? "Analizando…" : "Orientarme"} <span aria-hidden="true">→</span>
-        </button>
+        <div ref={listaRef} tabIndex={0} role="log" aria-label="Conversación con el asistente" aria-live="polite" className="flex-1 space-y-3 overflow-y-auto px-4 py-5 md:px-5">
+          <Burbuja rol="asistente">{saludo}</Burbuja>
+          {mensajes.map((m, i) => (
+            <Burbuja key={i} rol={m.rol}>
+              {m.texto}
+            </Burbuja>
+          ))}
+          {escribiendo ? (
+            <Burbuja rol="asistente">
+              <span className="sr-only">El asistente está escribiendo</span>
+              <span aria-hidden="true" className="flex h-[1.4em] items-center gap-1">
+                <span className="punto-escribiendo size-1.5 rounded-full bg-muted" />
+                <span className="punto-escribiendo size-1.5 rounded-full bg-muted" />
+                <span className="punto-escribiendo size-1.5 rounded-full bg-muted" />
+              </span>
+            </Burbuja>
+          ) : null}
+          {aviso ? <Burbuja rol="asistente">{aviso}</Burbuja> : null}
+        </div>
 
-        <p className="mt-4 max-w-md text-xs leading-relaxed text-muted">
-          Es una orientación, no una cotización: no incluye valores ni plazos. No escribas datos personales.
-          {ia ? " Analizamos tu texto con inteligencia artificial." : ""} Más detalles en la{" "}
-          <a href="/privacidad" target="_blank" rel="noopener" className="underline decoration-accent underline-offset-4">
+        <div className="border-t border-line px-4 py-3 md:px-5">
+          {sugerencias.length > 0 || puedeCotizar ? (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {sugerencias.map((sugerencia) => (
+                <button
+                  key={sugerencia}
+                  type="button"
+                  onClick={() => void enviar(sugerencia)}
+                  className="rounded-full border border-line px-3.5 py-1.5 text-sm text-fg transition-colors hover:border-accent hover:bg-accent/10"
+                >
+                  {sugerencia}
+                </button>
+              ))}
+              {puedeCotizar && (meta?.listo || agotado) ? (
+                formEnabled ? (
+                  <button type="button" onClick={cotizar} className={botonCotizar}>
+                    Pedir cotización con esta conversación <span aria-hidden="true">→</span>
+                  </button>
+                ) : (
+                  <a href={mailto} className={botonCotizar}>
+                    Escribirnos con esta conversación <span aria-hidden="true">→</span>
+                  </a>
+                )
+              ) : puedeCotizar ? (
+                formEnabled ? (
+                  <button type="button" onClick={cotizar} className="px-2 py-1.5 text-sm text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg">
+                    Pedir la cotización con lo que llevamos
+                  </button>
+                ) : (
+                  <a href={mailto} className="px-2 py-1.5 text-sm text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg">
+                    Escribirnos con lo que llevamos
+                  </a>
+                )
+              ) : null}
+            </div>
+          ) : null}
+
+          {agotado ? (
+            <p className="text-sm text-muted">Llegamos al límite de esta conversación. Lo mejor ahora es que armemos tu cotización.</p>
+          ) : (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void enviar(texto);
+              }}
+              className="flex items-end gap-2"
+            >
+              <textarea
+                ref={campoRef}
+                value={texto}
+                onChange={(event) => setTexto(event.target.value)}
+                onKeyDown={alTeclear}
+                rows={1}
+                maxLength={600}
+                aria-label="Escribe tu mensaje"
+                placeholder="Escribe aquí…"
+                className="block max-h-32 min-h-10 w-full resize-none rounded-2xl border border-line bg-bg px-4 py-2.5 text-[15px] text-fg placeholder:text-muted"
+              />
+              <button
+                type="submit"
+                disabled={escribiendo || texto.trim() === ""}
+                aria-label="Enviar mensaje"
+                className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-on-accent transition-colors hover:bg-fg disabled:opacity-40"
+              >
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 16V4M5 9l5-5 5 5" />
+                </svg>
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
+      <aside className="min-w-0 space-y-4 text-sm leading-relaxed text-muted lg:pt-2">
+        <p>
+          Cuéntanos tu idea como se la contarías a un amigo. Te hacemos algunas preguntas y te decimos qué necesitaría tu proyecto: por ejemplo
+          catálogo, pasarela de pagos o panel de administración.
+        </p>
+        <p>Es una orientación, no una cotización: no incluye valores ni plazos.</p>
+        <p>
+          No escribas datos personales.{ia ? " Tus mensajes se analizan con inteligencia artificial." : ""} Más detalles en la{" "}
+          <a href="/privacidad" target="_blank" rel="noopener" className="text-fg underline decoration-accent decoration-2 underline-offset-4">
             política de privacidad<span className="sr-only"> (se abre en una pestaña nueva)</span>
           </a>
           .
         </p>
-
-        <div aria-live="polite">
-          {estado === "error" ? <p className="mt-4 border border-line bg-surface p-4 text-sm text-fg">{mensajeError}</p> : null}
-        </div>
-      </form>
-
-      <div ref={resultadoRef} tabIndex={-1} aria-busy={estado === "analizando"} className="min-w-0 outline-none">
-        {resultado && estado === "listo" ? (
-          <div className="border border-line bg-surface p-6 [overflow-wrap:anywhere] md:p-8">
-            <p className="flex items-center gap-3 font-mono text-xs text-accent">
-              <span className="h-px w-8 bg-accent" aria-hidden="true" />
-              Tu orientación{resultado.modo === "ia" ? " · con IA" : ""}
-            </p>
-            <h3 className="mt-4 text-2xl font-medium tracking-tight text-fg">{resultado.proyecto}</h3>
-            <p className="mt-3 leading-relaxed text-muted">{resultado.resumen}</p>
-
-            {[
-              { titulo: "Lo esencial", lista: esenciales },
-              { titulo: "Para sumar después", lista: recomendados },
-            ].map(({ titulo, lista }) =>
-              lista.length ? (
-                <div key={titulo} className="mt-7">
-                  <h4 className="font-mono text-xs uppercase tracking-wider text-fg">{titulo}</h4>
-                  <ul className="mt-3 divide-y divide-line border-y border-line">
-                    {lista.map((modulo) => (
-                      <li key={modulo.id} className="py-3">
-                        <p className="font-medium text-fg">{modulo.titulo}</p>
-                        <p className="mt-1 text-sm leading-relaxed text-muted">{modulo.descripcion}</p>
-                        <p className="mt-1 text-sm leading-relaxed text-accent-soft">{modulo.motivo}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null,
-            )}
-
-            {resultado.preguntas.length ? (
-              <div className="mt-7">
-                <h4 className="font-mono text-xs uppercase tracking-wider text-fg">Para afinar la cotización, nos ayudaría saber</h4>
-                <ul className="mt-3 space-y-2 text-sm text-muted">
-                  {resultado.preguntas.map((pregunta) => (
-                    <li key={pregunta} className="flex gap-3">
-                      <span aria-hidden="true" className="mt-[0.65em] h-px w-4 shrink-0 bg-accent" />
-                      {pregunta}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <p className="mt-7 text-xs leading-relaxed text-muted">
-              Esto es una orientación general y puede no ajustarse a tu caso. La cotización formal la preparamos después de conversar contigo.
-            </p>
-
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-              {formEnabled ? (
-                <button type="button" onClick={cotizar} className={accion}>
-                  Pedir cotización con este resumen <span aria-hidden="true">→</span>
-                </button>
-              ) : (
-                <a href={mailto} className={accion}>
-                  Escribirnos con este resumen <span aria-hidden="true">→</span>
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={reiniciar}
-                className="text-sm font-medium text-fg underline decoration-line decoration-2 underline-offset-[6px] hover:decoration-accent"
-              >
-                Empezar de nuevo
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex h-full min-h-56 flex-col justify-center border border-dashed border-line p-6 text-sm leading-relaxed text-muted md:p-8">
-            <p className="font-medium text-fg">Aquí aparecerá tu orientación</p>
-            <p className="mt-2">
-              Te diremos qué tipo de proyecto parece ser, qué funciones necesitaría (por ejemplo catálogo, pasarela de pagos o panel de
-              administración) y qué conviene dejar para después.
-            </p>
-          </div>
-        )}
-      </div>
+      </aside>
     </div>
   );
 }

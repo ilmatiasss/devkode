@@ -22,7 +22,7 @@ export const modulos: Modulo[] = [
   },
   {
     id: "carrito",
-    titulo: "Carrito y compra",
+    titulo: "Carrito de compras",
     descripcion: "Que tus clientes elijan productos y compren en pocos pasos, desde el celular o el computador.",
     palabras: /carrito|comprar|compra online|vender online|tienda/i,
   },
@@ -30,11 +30,11 @@ export const modulos: Modulo[] = [
     id: "pagos",
     titulo: "Pasarela de pagos",
     descripcion: "Cobrar online con tarjeta o transferencia, con medios como Webpay, Mercado Pago o Flow.",
-    palabras: /pago|pagar|cobrar|webpay|tarjeta|mercado ?pago|flow|transferencia/i,
+    palabras: /\bpago|\bpagar|\bcobrar|webpay|tarjeta|mercado ?pago|\bflow\b|transferencia/i,
   },
   {
     id: "despachos",
-    titulo: "Despachos y retiro",
+    titulo: "Despachos",
     descripcion: "Definir cómo llega el pedido: envío a domicilio por comuna o región, o retiro en tienda.",
     palabras: /despacho|env[ií]o|delivery|reparto|retiro|courier|chilexpress|starken/i,
   },
@@ -54,31 +54,31 @@ export const modulos: Modulo[] = [
     id: "cuentas",
     titulo: "Cuentas de clientes",
     descripcion: "Que tus clientes se registren, vean su historial de pedidos y vuelvan a comprar más rápido.",
-    palabras: /cuenta|registr|login|iniciar sesi[oó]n|clientes frecuentes|usuarios/i,
+    palabras: /\bcuentas?\b|registr|login|iniciar sesi[oó]n|clientes frecuentes|usuarios/i,
   },
   {
     id: "roles",
-    titulo: "Usuarios y permisos",
+    titulo: "Usuarios con permisos",
     descripcion: "Accesos distintos para tu equipo, por ejemplo administrador, vendedor o repartidor.",
-    palabras: /roles?|permisos|equipo|vendedores|repartidores|trabajadores/i,
+    palabras: /\broles?\b|permisos|equipo|vendedores|repartidores|trabajadores/i,
   },
   {
     id: "documentos",
-    titulo: "Boleta y factura electrónica",
+    titulo: "Boleta electrónica",
     descripcion: "Emitir documentos tributarios automáticamente al vender, conectado al SII o a un proveedor de facturación.",
-    palabras: /boleta|factura|sii|tributari|dte/i,
+    palabras: /boleta|factura|\bsii\b|tributari|\bdte\b/i,
   },
   {
     id: "reservas",
-    titulo: "Reservas y agenda",
+    titulo: "Reservas online",
     descripcion: "Que tus clientes reserven o agenden una hora online, con confirmación y recordatorios.",
-    palabras: /reserva|agenda|agendar|horas?\b|citas?\b|turnos?/i,
+    palabras: /reserva|\bagenda|agendar|\bhoras?\b|\bcitas?\b|\bturnos?\b/i,
   },
   {
     id: "seguimiento",
     titulo: "Seguimiento de entregas",
     descripcion: "Ver en qué estado va cada pedido o despacho, y que tu cliente también pueda seguirlo.",
-    palabras: /seguimiento|tracking|ruta|repartidor|log[ií]stica|entregas?/i,
+    palabras: /seguimiento|tracking|\brutas?\b|repartidor|log[ií]stica|\bentregas?\b/i,
   },
   {
     id: "contenido",
@@ -88,15 +88,15 @@ export const modulos: Modulo[] = [
   },
   {
     id: "formulario",
-    titulo: "Formularios y contacto",
+    titulo: "Formulario de contacto",
     descripcion: "Que te escriban o pidan una cotización desde la página, con aviso directo a tu correo.",
     palabras: /contacto|cotiza|formulario|whatsapp|consultas/i,
   },
   {
     id: "seo",
-    titulo: "Posicionamiento en Google (SEO)",
+    titulo: "Posicionamiento en Google",
     descripcion: "Que tu sitio cargue rápido y esté bien preparado para aparecer cuando te busquen en Google.",
-    palabras: /google|seo|posicion|aparecer|buscador/i,
+    palabras: /google|\bseo\b|posicion|aparecer|buscador/i,
   },
   {
     id: "idiomas",
@@ -106,7 +106,7 @@ export const modulos: Modulo[] = [
   },
   {
     id: "reportes",
-    titulo: "Reportes y estadísticas",
+    titulo: "Estadísticas del negocio",
     descripcion: "Ver cuánto vendes, qué se vende más y cómo avanza tu negocio, con gráficos fáciles de leer.",
     palabras: /reporte|estad[ií]stica|m[eé]tricas|gr[aá]ficos|dashboard|an[aá]lisis/i,
   },
@@ -114,13 +114,13 @@ export const modulos: Modulo[] = [
     id: "avisos",
     titulo: "Avisos automáticos",
     descripcion: "Correos o mensajes automáticos: confirmación de compra, cambio de estado del pedido, recordatorios.",
-    palabras: /aviso|notifica|recordatorio|alerta|confirmaci[oó]n/i,
+    palabras: /\baviso|notifica|recordatorio|\balerta|confirmaci[oó]n/i,
   },
   {
     id: "integraciones",
     titulo: "Conexión con otros sistemas",
     descripcion: "Conectar el sitio con lo que ya usas: ERP, CRM, contabilidad, marketplaces o planillas.",
-    palabras: /erp|crm|integr|conectar|contabilidad|marketplace|mercado ?libre|excel|planilla/i,
+    palabras: /\berp\b|\bcrm\b|integr|conectar|contabilidad|marketplace|mercado ?libre|\bexcel\b|planilla/i,
   },
 ];
 
@@ -161,42 +161,54 @@ export const tiposPorPalabras: [string, RegExp][] = [
   ["Software a medida", /a medida|software|automatizar|erp|procesos/i],
 ];
 
-// Preguntas para afinar la cotización, según el tipo (se usan cuando no hay IA)
-export const preguntasPorTipo: Record<string, string[]> = {
+// Preguntas que el asistente hace una a una cuando no hay IA, con respuestas rápidas sugeridas
+export type PreguntaGuiada = { pregunta: string; sugerencias: string[] };
+
+export const preguntasPorTipo: Record<string, PreguntaGuiada[]> = {
   "Tienda online": [
-    "¿Cuántos productos tienes, aproximadamente?",
-    "¿Despachas a todo Chile o solo a algunas zonas?",
-    "¿Ya vendes por otro medio (redes sociales, local) o parte de cero?",
+    { pregunta: "¿Cuántos productos tienes, más o menos?", sugerencias: ["Menos de 50", "Entre 50 y 500", "Más de 500"] },
+    { pregunta: "¿Despachas a todo Chile o solo a algunas zonas?", sugerencias: ["A todo Chile", "Solo mi ciudad", "También retiro en tienda"] },
+    { pregunta: "¿Ya vendes por otro medio, como redes sociales o un local, o partes de cero?", sugerencias: ["Vendo por Instagram", "Tengo un local", "Parto de cero"] },
   ],
   "Landing page": [
-    "¿Cuál es el objetivo principal: que te escriban, se inscriban o compren?",
-    "¿Ya tienes logo, textos y fotos, o necesitas apoyo con eso?",
+    { pregunta: "¿Cuál es el objetivo principal de la página?", sugerencias: ["Que me escriban", "Que se inscriban", "Que compren"] },
+    { pregunta: "¿Ya tienes logo, textos y fotos, o necesitas apoyo con eso?", sugerencias: ["Ya tengo todo", "Necesito apoyo"] },
   ],
   "Web corporativa": [
-    "¿Cuántas secciones o páginas imaginas?",
-    "¿Ya tienes un sitio que haya que rehacer, o es el primero?",
+    { pregunta: "¿Cuántas secciones o páginas imaginas, más o menos?", sugerencias: ["Pocas, de 3 a 5", "Unas 10", "No sé"] },
+    { pregunta: "¿Ya tienes un sitio que haya que rehacer, o sería el primero?", sugerencias: ["Hay que rehacerlo", "Sería el primero"] },
   ],
   "Aplicación web": [
-    "¿Quiénes la usarían y qué haría cada tipo de usuario?",
-    "¿Reemplaza algo que hoy haces en planillas o a mano?",
+    { pregunta: "¿Quiénes la usarían y qué haría cada uno?", sugerencias: ["Mi equipo", "Mis clientes", "Ambos"] },
+    { pregunta: "¿Reemplaza algo que hoy haces en planillas o a mano?", sugerencias: ["Sí, en planillas", "Sí, a mano", "Es algo nuevo"] },
   ],
   "Software a medida": [
-    "¿Qué proceso quieres automatizar y quién lo hace hoy?",
-    "¿Tiene que conectarse con algún sistema que ya usas?",
+    { pregunta: "¿Qué proceso quieres automatizar y quién lo hace hoy?", sugerencias: [] },
+    { pregunta: "¿Tiene que conectarse con algún sistema que ya usas?", sugerencias: ["Sí", "No", "No estoy seguro"] },
   ],
   "Aún no lo sé": [
-    "¿Qué quieres lograr con tu sitio: vender, mostrar tu trabajo o recibir contactos?",
-    "¿Para cuándo lo necesitas, aproximadamente?",
+    {
+      pregunta: "¿Qué quieres lograr con tu sitio?",
+      sugerencias: ["Vender mis productos", "Mostrar mi trabajo", "Recibir consultas", "Gestionar mi negocio"],
+    },
+    { pregunta: "¿Para cuándo lo necesitas, más o menos?", sugerencias: ["Lo antes posible", "En unos meses", "Sin apuro"] },
   ],
 };
 
 export const tipoValido = (tipo: unknown): tipo is string => typeof tipo === "string" && projectTypes.includes(tipo);
 
-// Respuesta del asistente (la misma para el modo con IA y el modo sin IA)
-export type Orientacion = {
+// Una conversación: lo que escribe el visitante y lo que responde el asistente
+export type Mensaje = { rol: "usuario" | "asistente"; texto: string };
+
+// Lo que devuelve la API en cada turno (igual con IA y sin IA)
+export type Respuesta = {
   modo: "ia" | "reglas";
+  texto: string;
+  // Respuestas rápidas que el visitante puede tocar en vez de escribir
+  sugerencias: string[];
+  // Ya hay información suficiente para ofrecer la cotización
+  listo: boolean;
+  // Lectura actual del asistente sobre el proyecto (puede cambiar a medida que conversan)
   proyecto: string;
-  resumen: string;
-  modulos: { id: string; titulo: string; descripcion: string; motivo: string; prioridad: "esencial" | "recomendado" }[];
-  preguntas: string[];
+  funciones: { id: string; titulo: string }[];
 };

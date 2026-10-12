@@ -18,7 +18,7 @@ export default function Home() {
         <Projects />
         <Services />
         <Process />
-        <Section id="asistente" label="Asistente" title="¿No sabes qué necesita tu proyecto? Cuéntanos tu idea y te orientamos.">
+        <Section id="asistente" label="Asistente" title="¿No sabes qué necesita tu proyecto? Conversemos.">
           <Asistente ia={iaActiva} formEnabled={formularioActivo} email={contact.email} />
         </Section>
         <Contact />

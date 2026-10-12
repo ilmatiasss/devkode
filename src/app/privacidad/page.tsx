@@ -53,8 +53,8 @@ export default function Privacidad() {
 
       <Block title="3. El asistente de orientación">
         <p>
-          En la sección «Asistente» puedes contarnos tu idea para que te orientemos sobre qué necesitaría tu proyecto. Solo
-          recibimos el texto que escribas ahí. Te pedimos que no incluyas datos personales, porque no los necesitamos para
+          En la sección «Asistente» puedes conversar sobre tu idea para que te orientemos sobre qué necesitaría tu proyecto.
+          Solo recibimos los mensajes que escribas ahí. Te pedimos que no incluyas datos personales, porque no los necesitamos para
           orientarte.
         </p>
         {iaActiva ? (
@@ -71,7 +71,7 @@ export default function Privacidad() {
           </p>
         )}
         <p>
-          No guardamos lo que escribes en ninguna base de datos ni en nuestros registros, solo datos técnicos de
+          No guardamos la conversación en ninguna base de datos ni en nuestros registros, solo datos técnicos de
           funcionamiento. Para evitar abusos limitamos las consultas por dirección IP, y ese conteo vive unas horas en la
           memoria del servidor. La orientación es solo informativa y no toma decisiones sobre ti. Si luego nos pides una
           cotización con ese resumen, lo que envíes por el formulario se rige por el resto de esta política.
