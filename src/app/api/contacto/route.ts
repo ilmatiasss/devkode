@@ -92,9 +92,11 @@ export async function POST(request: Request) {
       ].join("\n"),
     });
   } catch (error) {
-    // Se registra solo el código del error, nunca las credenciales
-    console.error("contacto: no se pudo enviar el correo", (error as { code?: string }).code ?? "sin código");
-    return json({ error: "envio_fallido" }, 502);
+    // Se informa solo el tipo de falla (códigos como EAUTH, ETIMEDOUT o ESOCKET), nunca el mensaje
+    // del servidor ni las credenciales. Sirve para saber por qué falla sin abrir los registros.
+    const { code, responseCode, command } = error as { code?: string; responseCode?: number; command?: string };
+    console.error("contacto: no se pudo enviar el correo", { code, responseCode, command });
+    return json({ error: "envio_fallido", motivo: code ?? "desconocido", respuesta: responseCode ?? null }, 502);
   }
 
   return json({ ok: true });
