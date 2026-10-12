@@ -9,8 +9,8 @@
   --color-line: #26262a;
   --color-fg: #ededee;
   --color-muted: #8f8f96;
-  --color-accent: #ff5a1f;
-  --color-accent-soft: #ff9669; /* tono claro del acento: travesaños del globo */
+  --color-accent: #9b72ff;
+  --color-accent-soft: #c4adff; /* tono claro del acento: travesaños del globo */
   --color-on-accent: #0b0b0c; /* color del texto sobre el acento */
 
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;

@@ -24,8 +24,8 @@ export function DotGlobe({ className = "" }: { className?: string }) {
 
     // Los colores salen del tema (globals.css), para cambiar de paleta en un solo lugar
     const theme = getComputedStyle(document.documentElement);
-    const accent = theme.getPropertyValue("--color-accent").trim() || "#ff5a1f";
-    const accentSoft = theme.getPropertyValue("--color-accent-soft").trim() || "#ff9669";
+    const accent = theme.getPropertyValue("--color-accent").trim() || "#9b72ff";
+    const accentSoft = theme.getPropertyValue("--color-accent-soft").trim() || "#c4adff";
 
     let w = 0;
     let h = 0;
