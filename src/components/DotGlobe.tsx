@@ -22,6 +22,11 @@ export function DotGlobe({ className = "" }: { className?: string }) {
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // Los colores salen del tema (globals.css), para cambiar de paleta en un solo lugar
+    const theme = getComputedStyle(document.documentElement);
+    const accent = theme.getPropertyValue("--color-accent").trim() || "#ff5a1f";
+    const accentSoft = theme.getPropertyValue("--color-accent-soft").trim() || "#ff9669";
+
     let w = 0;
     let h = 0;
     let cx = 0;
@@ -99,7 +104,7 @@ export function DotGlobe({ className = "" }: { className?: string }) {
       }
 
       // 2. Travesaños entre las dos hebras
-      ctx.strokeStyle = "rgb(255, 150, 105)";
+      ctx.strokeStyle = accentSoft;
       ctx.lineWidth = 1;
       for (let k = 0; k < RUNGS; k++) {
         const y = -0.9 + (1.8 * k) / (RUNGS - 1);
@@ -117,7 +122,7 @@ export function DotGlobe({ className = "" }: { className?: string }) {
       }
 
       // 3. Las dos hebras
-      ctx.fillStyle = "rgb(255, 90, 31)";
+      ctx.fillStyle = accent;
       for (const s of [strandA, strandB]) {
         for (let i = 0; i < s.count; i++) {
           project(s.lon[i], s.y[i], s.r[i]);

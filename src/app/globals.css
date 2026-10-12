@@ -10,6 +10,8 @@
   --color-fg: #ededee;
   --color-muted: #8f8f96;
   --color-accent: #ff5a1f;
+  --color-accent-soft: #ff9669; /* tono claro del acento: travesaños del globo */
+  --color-on-accent: #0b0b0c; /* color del texto sobre el acento */
 
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -31,7 +33,7 @@
 
   ::selection {
     background: var(--color-accent);
-    color: var(--color-bg);
+    color: var(--color-on-accent);
   }
 
   :focus-visible {
@@ -59,7 +61,7 @@
 
   .btn-primary {
     background: var(--color-accent);
-    color: #0b0b0c;
+    color: var(--color-on-accent);
   }
 
   .btn-primary:hover {

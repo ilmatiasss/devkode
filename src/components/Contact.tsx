@@ -26,11 +26,11 @@ export function Contact() {
     <>
       <section id="contacto" className="border-t border-line">
         <div className="mx-auto max-w-[1200px] px-5 py-20 md:px-8 md:py-28">
-          <div className="relative overflow-hidden bg-accent px-6 py-14 text-bg md:px-14 md:py-20">
+          <div className="relative overflow-hidden bg-accent px-6 py-14 text-on-accent md:px-14 md:py-20">
             {/* Trama de puntos, como eco del globo */}
             <div
               aria-hidden="true"
-              className="absolute inset-0 bg-[radial-gradient(rgb(11_11_12/0.2)_1px,transparent_1px)] [background-size:16px_16px]"
+              className="absolute inset-0 bg-[radial-gradient(color-mix(in_srgb,var(--color-on-accent)_20%,transparent)_1px,transparent_1px)] [background-size:16px_16px]"
             />
             <div className={`relative ${formEnabled ? "grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16" : ""}`}>
               <div className="max-w-3xl">
