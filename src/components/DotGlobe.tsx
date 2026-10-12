@@ -1,45 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { sphere, strand } from "@/lib/dots";
 
 // Globo de puntos que gira lentamente. Dos hebras naranjas lo recorren de polo a polo
 // enroscándose como una doble hélice de ADN, unidas por travesaños. La torsión "respira"
 // con el tiempo, así que la hélice se aprieta y se afloja.
 
-const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const CAMERA = 3;
 const TILT = -0.42; // inclinación del eje, en radianes
 const RUNGS = 15;
-
-type Cloud = { lon: Float32Array; y: Float32Array; r: Float32Array; count: number };
-
-// Puntos repartidos parejo sobre la esfera (espiral de Fibonacci)
-function sphere(count: number): Cloud {
-  const lon = new Float32Array(count);
-  const y = new Float32Array(count);
-  const r = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    const yi = 1 - (2 * (i + 0.5)) / count;
-    y[i] = yi;
-    r[i] = Math.sqrt(1 - yi * yi);
-    lon[i] = (i * GOLDEN) % (Math.PI * 2);
-  }
-  return { lon, y, r, count };
-}
-
-// Una hebra: puntos a lo largo de un meridiano, de polo a polo
-function strand(count: number, offset: number): Cloud {
-  const lon = new Float32Array(count);
-  const y = new Float32Array(count);
-  const r = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    const yi = 0.97 - (1.94 * i) / (count - 1);
-    y[i] = yi;
-    r[i] = Math.sqrt(1 - yi * yi);
-    lon[i] = offset;
-  }
-  return { lon, y, r, count };
-}
 
 export function DotGlobe({ className = "" }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
