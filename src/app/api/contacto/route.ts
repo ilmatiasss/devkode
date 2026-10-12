@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { contact, projectTypes, site } from "@/content/site";
+import { contact, privacy, projectTypes, site } from "@/content/site";
 
 export const runtime = "nodejs";
 
@@ -88,7 +88,12 @@ export async function POST(request: Request) {
   const type = projectTypes.includes(text(body.type, 60)) ? text(body.type, 60) : "Sin especificar";
   const message = text(body.message, 3000);
 
-  if (name.length < 2 || !EMAIL.test(email) || message.length < 10) return json({ error: "datos_invalidos" }, 400);
+  // Sin la aceptación de la política de privacidad no se trata ningún dato (Ley 21.719, art. 12)
+  const consent = body.consent === "on" || body.consent === true;
+
+  if (name.length < 2 || !EMAIL.test(email) || message.length < 10 || !consent) {
+    return json({ error: "datos_invalidos" }, 400);
+  }
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? "mail.spacemail.com",
@@ -116,6 +121,9 @@ export async function POST(request: Request) {
         "",
         "Mensaje:",
         message,
+        "",
+        // Queda como respaldo de que la persona dio su consentimiento, y a qué versión de la política
+        `Aceptó la política de privacidad (versión ${privacy.version}) el ${new Date().toISOString()}.`,
       ].join("\n"),
     });
   } catch (error) {

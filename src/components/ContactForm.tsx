@@ -7,7 +7,15 @@ type Status = "idle" | "sending" | "ok" | "error";
 const field =
   "mt-2 block w-full border border-bg bg-bg px-4 py-3 text-fg placeholder:text-muted focus-visible:outline-bg";
 
-export function ContactForm({ projectTypes, email }: { projectTypes: string[]; email: string }) {
+export function ContactForm({
+  projectTypes,
+  email,
+  retentionMonths,
+}: {
+  projectTypes: string[];
+  email: string;
+  retentionMonths: number;
+}) {
   const [status, setStatus] = useState<Status>("idle");
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -118,6 +126,17 @@ export function ContactForm({ projectTypes, email }: { projectTypes: string[]; e
         />
       </label>
 
+      <label className="flex items-start gap-3 text-sm sm:col-span-2">
+        <input type="checkbox" name="consent" required className="mt-0.5 size-4 shrink-0 accent-bg" />
+        <span>
+          Acepto que usen mis datos para responder esta solicitud, según la{" "}
+          <a href="/privacidad" target="_blank" rel="noopener" className="font-medium underline decoration-2 underline-offset-4">
+            política de privacidad<span className="sr-only"> (se abre en una pestaña nueva)</span>
+          </a>
+          .
+        </span>
+      </label>
+
       <div className="sm:col-span-2">
         <button
           type="submit"
@@ -128,7 +147,9 @@ export function ContactForm({ projectTypes, email }: { projectTypes: string[]; e
         </button>
 
         <p className="mt-4 max-w-md text-xs leading-relaxed opacity-75">
-          Usamos tus datos solo para responder esta solicitud. No los compartimos ni te enviamos publicidad.
+          Usamos tus datos solo para esto: no te enviamos publicidad ni los compartimos. Si no llegamos a trabajar
+          juntos, los borramos a los {retentionMonths} meses. Puedes pedir que los borremos antes escribiendo a{" "}
+          {email}.
         </p>
 
         <div aria-live="polite">

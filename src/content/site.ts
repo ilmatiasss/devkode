@@ -19,6 +19,23 @@ export const contact = {
   whatsapp: null as string | null,
 };
 
+// Datos que exige la Ley 21.719 en la política de privacidad (se publica en /privacidad).
+// Completa `legal` con el nombre completo y el RUT de quien está detrás de DevKode: la ley pide
+// identificar al responsable. Mientras estén en null, la página solo muestra "DevKode" y el correo.
+// Si cambias algo en la política, sube `version` y actualiza `updated`: cada solicitud del
+// formulario queda con la versión que aceptó la persona.
+export const legal = {
+  name: null as string | null,
+  rut: null as string | null,
+};
+
+export const privacy = {
+  version: "1.0",
+  updated: "12 de octubre de 2026",
+  // Cuánto se guardan los mensajes del formulario si no llegamos a trabajar juntos
+  retentionMonths: 12,
+};
+
 // Opciones del formulario de cotización
 export const projectTypes = [
   "Tienda online",

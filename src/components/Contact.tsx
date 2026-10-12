@@ -1,4 +1,4 @@
-import { contact, nav, projectTypes, site } from "@/content/site";
+import { contact, nav, privacy, projectTypes, site } from "@/content/site";
 import { ContactForm } from "./ContactForm";
 import { Logo } from "./Logo";
 
@@ -68,7 +68,9 @@ export function Contact() {
                 )}
               </div>
 
-              {formEnabled ? <ContactForm projectTypes={projectTypes} email={contact.email} /> : null}
+              {formEnabled ? (
+                <ContactForm projectTypes={projectTypes} email={contact.email} retentionMonths={privacy.retentionMonths} />
+              ) : null}
             </div>
           </div>
         </div>
@@ -83,6 +85,9 @@ export function Contact() {
                 {item.label}
               </a>
             ))}
+            <a href="/privacidad" className="transition-colors hover:text-fg">
+              Privacidad
+            </a>
           </nav>
           <p className="font-mono text-xs">
             © {new Date().getFullYear()} {site.name} · {site.location}
