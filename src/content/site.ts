@@ -32,14 +32,16 @@ export const legal = {
 // Si cambias algo en la política, sube `version` y actualiza `updated`: cada solicitud del
 // formulario queda con la versión que aceptó la persona.
 export const privacy = {
-  version: "1.1",
+  version: "1.2",
+  // Versión que rige cuando el asistente usa IA (ver src/lib/funciones.ts)
+  versionConIA: "1.3",
   updated: "12 de octubre de 2026",
   // Cuánto se guardan los mensajes del formulario si no llegamos a trabajar juntos
   retentionMonths: 12,
 };
 
 export const terms = {
-  version: "1.0",
+  version: "1.1",
   updated: "12 de octubre de 2026",
 };
 
@@ -56,6 +58,7 @@ export const projectTypes = [
 export const nav = [
   { label: "Proyectos", href: "#proyectos" },
   { label: "Servicios", href: "#servicios" },
+  { label: "Asistente", href: "#asistente" },
   { label: "Cómo trabajamos", href: "#proceso" },
 ];
 

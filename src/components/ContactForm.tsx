@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type Status = "idle" | "sending" | "ok" | "error";
 
@@ -17,6 +17,35 @@ export function ContactForm({
   retentionMonths: number;
 }) {
   const [status, setStatus] = useState<Status>("idle");
+  const formRef = useRef<HTMLFormElement>(null);
+  // Resumen que manda el asistente de la página para dejar el formulario listo
+  const pendingBrief = useRef<{ type: string; message: string } | null>(null);
+
+  const applyBrief = () => {
+    const form = formRef.current;
+    const brief = pendingBrief.current;
+    if (!form || !brief) return;
+    const type = form.elements.namedItem("type");
+    if (type instanceof HTMLSelectElement && projectTypes.includes(brief.type)) type.value = brief.type;
+    const message = form.elements.namedItem("message");
+    if (message instanceof HTMLTextAreaElement) message.value = brief.message;
+    pendingBrief.current = null;
+    const name = form.elements.namedItem("name");
+    if (name instanceof HTMLInputElement) name.focus({ preventScroll: true });
+  };
+
+  useEffect(() => {
+    const onBrief = (event: Event) => {
+      pendingBrief.current = (event as CustomEvent<{ type: string; message: string }>).detail;
+      setStatus("idle"); // si ya se había enviado un mensaje, vuelve a mostrar el formulario
+      applyBrief();
+    };
+    window.addEventListener("devkode:brief", onBrief);
+    return () => window.removeEventListener("devkode:brief", onBrief);
+  }, []);
+
+  // Si el formulario acababa de reaparecer, aplica el resumen pendiente
+  useEffect(applyBrief, [status]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +83,7 @@ export function ContactForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="relative grid gap-5 sm:grid-cols-2">
+    <form ref={formRef} onSubmit={onSubmit} className="relative grid gap-5 sm:grid-cols-2">
       {/* Campo trampa contra robots: las personas no lo ven */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>

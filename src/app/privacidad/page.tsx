@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Block, LegalLayout, List, Titular, legalLink, responsable } from "@/components/LegalLayout";
 import { contact, privacy, site } from "@/content/site";
+import { iaActiva, versionPrivacidad } from "@/lib/funciones";
 
 export const metadata: Metadata = {
   title: `Política de privacidad | ${site.name}`,
@@ -14,7 +15,7 @@ export default function Privacidad() {
   return (
     <LegalLayout
       title="Política de privacidad"
-      meta={`Versión ${privacy.version} · Actualizada el ${privacy.updated}`}
+      meta={`Versión ${versionPrivacidad} · Actualizada el ${privacy.updated}`}
       intro="Aquí te contamos, sin letra chica, qué datos tuyos recibimos cuando nos escribes desde este sitio, para qué los usamos y cómo puedes controlarlos. Cumplimos la Ley N° 19.628 sobre protección de la vida privada, tal como la modificó la Ley N° 21.719."
     >
       <Block title="1. Quién es el responsable">
@@ -50,7 +51,34 @@ export default function Privacidad() {
         </p>
       </Block>
 
-      <Block title="3. Qué no utilizamos">
+      <Block title="3. El asistente de orientación">
+        <p>
+          En la sección «Asistente» puedes contarnos tu idea para que te orientemos sobre qué necesitaría tu proyecto. Solo
+          recibimos el texto que escribas ahí. Te pedimos que no incluyas datos personales, porque no los necesitamos para
+          orientarte.
+        </p>
+        {iaActiva ? (
+          <p>
+            Para analizarlo, tu texto se envía a Anthropic, una empresa de inteligencia artificial con sede en Estados Unidos,
+            a través de su servicio de programación (API), solo para generar la orientación. Anthropic puede conservar lo que
+            recibe por un tiempo limitado, según sus propias condiciones. Si ese servicio no responde, el análisis se hace
+            con reglas simples en nuestro propio servidor.
+          </p>
+        ) : (
+          <p>
+            El análisis se hace con reglas simples en nuestro propio servidor: tu texto no se envía a ningún proveedor de
+            inteligencia artificial.
+          </p>
+        )}
+        <p>
+          No guardamos lo que escribes en ninguna base de datos ni en nuestros registros, solo datos técnicos de
+          funcionamiento. Para evitar abusos limitamos las consultas por dirección IP, y ese conteo vive unas horas en la
+          memoria del servidor. La orientación es solo informativa y no toma decisiones sobre ti. Si luego nos pides una
+          cotización con ese resumen, lo que envíes por el formulario se rige por el resto de esta política.
+        </p>
+      </Block>
+
+      <Block title="4. Qué no utilizamos">
         <p>Para que sepas exactamente a qué atenerte, esto es lo que este sitio no hace:</p>
         <List
           items={[
@@ -67,7 +95,7 @@ export default function Privacidad() {
         </p>
       </Block>
 
-      <Block title="4. Para qué los usamos y con qué fundamento">
+      <Block title="5. Para qué los usamos y con qué fundamento">
         <p>
           Usamos tus datos únicamente para leer tu solicitud, responderte y preparar una cotización. El fundamento es tu
           consentimiento, que nos das al marcar la casilla y enviar el formulario, y las gestiones previas a un posible
@@ -75,30 +103,34 @@ export default function Privacidad() {
         </p>
         <p>
           No los usamos para enviarte publicidad, no los vendemos, no armamos perfiles ni tomamos decisiones automatizadas
-          sobre ti. Si en el futuro quisiéramos escribirte para otra cosa, te lo pediremos aparte.
+          sobre ti (la orientación del asistente es solo informativa). Si en el futuro quisiéramos escribirte para otra cosa, te lo pediremos aparte.
         </p>
       </Block>
 
-      <Block title="5. Con quién los compartimos">
+      <Block title="6. Con quién los compartimos">
         <p>Solo con los proveedores que necesitamos para recibir tu mensaje, y que lo tratan por cuenta nuestra:</p>
         <List
           items={[
             "Vercel Inc.: aloja este sitio y ejecuta el formulario. El mensaje pasa por sus servidores, pero no queda guardado en ninguna base de datos nuestra.",
             "Spacemail: el servicio de correo donde recibimos tu mensaje y guardamos las conversaciones.",
+            ...(iaActiva
+              ? ["Anthropic: analiza el texto que escribes en el asistente de orientación, solo para generar la orientación."]
+              : []),
           ]}
         />
         <p>No cedemos tus datos a nadie más, salvo que una autoridad competente nos lo exija por ley.</p>
       </Block>
 
-      <Block title="6. Transferencias fuera de Chile">
+      <Block title="7. Transferencias fuera de Chile">
         <p>
           Estos proveedores operan fuera de Chile, por lo que tus datos pueden ser tratados y almacenados en otros países,
           como Estados Unidos. Elegimos proveedores reconocidos, que aplican medidas de seguridad para proteger los datos
           que les confiamos.
+          {iaActiva ? " Lo mismo ocurre con el texto del asistente, que viaja a los servidores de Anthropic en Estados Unidos." : ""}
         </p>
       </Block>
 
-      <Block title="7. Cuánto tiempo los conservamos">
+      <Block title="8. Cuánto tiempo los conservamos">
         <List
           items={[
             `Si no llegamos a trabajar juntos, borramos tu mensaje a los ${privacy.retentionMonths} meses desde nuestro último contacto.`,
@@ -108,7 +140,7 @@ export default function Privacidad() {
         />
       </Block>
 
-      <Block title="8. Cómo los protegemos">
+      <Block title="9. Cómo los protegemos">
         <p>
           La página funciona solo con conexión cifrada (HTTPS) y con cabeceras de seguridad que impiden que otros sitios la
           incrusten o le inyecten contenido. El formulario valida y limpia lo que recibe, rechaza envíos que no vengan de
@@ -121,7 +153,7 @@ export default function Privacidad() {
         </p>
       </Block>
 
-      <Block title="9. Tus derechos">
+      <Block title="10. Tus derechos">
         <p>Sobre tus datos personales tienes derecho a:</p>
         <List
           items={[
@@ -148,14 +180,14 @@ export default function Privacidad() {
         </p>
       </Block>
 
-      <Block title="10. Menores de edad">
+      <Block title="11. Menores de edad">
         <p>
           Este sitio está dirigido a personas que contratan servicios web. No recopilamos a sabiendas datos de menores de
           edad. Si crees que un menor nos escribió, avísanos y los borraremos.
         </p>
       </Block>
 
-      <Block title="11. Cambios en esta política">
+      <Block title="12. Cambios en esta política">
         <p>
           Si la modificamos, publicaremos la nueva versión en esta misma página con su fecha y número de versión. Cada
           solicitud que recibimos queda registrada con la versión que aceptaste.

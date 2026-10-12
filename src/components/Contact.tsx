@@ -1,12 +1,13 @@
 import { contact, nav, privacy, projectTypes, site } from "@/content/site";
 import { ContactForm } from "./ContactForm";
+import { formularioActivo } from "@/lib/funciones";
 import { Logo } from "./Logo";
 
 export function Contact() {
   // El formulario solo se muestra si el envío de correo está configurado en Vercel
   // (variables SMTP_USER y SMTP_PASS). La página se genera al desplegar, así que después
   // de agregarlas hay que volver a desplegar. Mientras tanto queda el botón de correo.
-  const formEnabled = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+  const formEnabled = formularioActivo;
 
   const subject = encodeURIComponent("Proyecto web");
   const whatsappText = encodeURIComponent("Hola, vi la página de DevKode y quiero cotizar un proyecto.");
