@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Block, LegalLayout, List, Titular, legalLink, responsable } from "@/components/LegalLayout";
 import { contact, projects, site, terms } from "@/content/site";
-import { iaActiva } from "@/lib/funciones";
 
 export const metadata: Metadata = {
   title: `Términos y condiciones | ${site.name}`,
@@ -53,23 +52,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="4. El asistente de orientación">
-        <p>
-          El asistente de este sitio genera, de forma automática, una orientación general sobre qué funciones podría necesitar
-          un proyecto, a partir de lo que tú describes.{iaActiva ? " Para hacerlo usa inteligencia artificial." : ""}
-        </p>
-        <p>
-          Es solo una guía: no es una cotización, una oferta, una propuesta técnica ni asesoría profesional, y puede contener
-          errores u omisiones. No incluye valores ni plazos. El alcance real de tu proyecto lo definimos juntos, después de
-          conversar contigo.
-        </p>
-        <p>
-          Te pedimos no escribir en el asistente datos personales, sensibles ni confidenciales. Podemos limitar su uso si
-          detectamos abusos.
-        </p>
-      </Block>
-
-      <Block title="5. Proyectos que mostramos">
+      <Block title="4. Proyectos que mostramos">
         <p>
           En el sitio mostramos proyectos en los que hemos trabajado ({nombres}) para ilustrar nuestro trabajo. Sus nombres,
           logos y marcas pertenecen a sus respectivos titulares, y su aparición no significa que ellos patrocinen o respalden
@@ -82,7 +65,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="6. Uso del sitio">
+      <Block title="5. Uso del sitio">
         <p>Te pedimos usar el sitio conforme a la ley y de buena fe. En particular, no puedes:</p>
         <List
           items={[
@@ -99,7 +82,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="7. Propiedad intelectual">
+      <Block title="6. Propiedad intelectual">
         <p>
           Los contenidos de este sitio (textos, diseño, gráficos, código y signos distintivos, incluido el logo de{" "}
           {site.name}) nos pertenecen o los usamos con autorización de sus titulares. No puedes reproducirlos, distribuirlos
@@ -111,7 +94,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="8. Responsabilidad">
+      <Block title="7. Responsabilidad">
         <p>
           La información de este sitio es general y puede cambiar sin aviso. No respondemos por decisiones que tomes basándote
           solo en ella, ni por daños indirectos derivados del uso del sitio o de fallas que no dependen de nosotros, como tu
@@ -123,7 +106,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="9. Protección de datos">
+      <Block title="8. Protección de datos">
         <p>
           El tratamiento de tus datos personales se rige por nuestra{" "}
           <a href="/privacidad" className={legalLink}>
@@ -133,7 +116,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="10. Ley aplicable y tribunales">
+      <Block title="9. Ley aplicable y tribunales">
         <p>
           Estos términos se rigen por la ley chilena. Cualquier controversia se someterá a los tribunales ordinarios de
           justicia con asiento en la comuna de Santiago, sin perjuicio de los derechos que correspondan a quienes tengan la
@@ -141,7 +124,7 @@ export default function Terminos() {
         </p>
       </Block>
 
-      <Block title="11. Cambios en estos términos">
+      <Block title="10. Cambios en estos términos">
         <p>
           Podemos actualizarlos. La versión vigente es siempre la publicada en esta página, con su fecha y número de versión.
           Si sigues usando el sitio después de un cambio, entendemos que lo aceptas.
