@@ -13,10 +13,9 @@ export const site = {
   location: "Chile",
 };
 
-// TODO: reemplaza por tus datos reales. El botón de WhatsApp solo aparece si defines `whatsapp`
-// (formato internacional sin "+", ej. "56912345678").
+// El botón de WhatsApp solo aparece si defines `whatsapp` (formato internacional sin "+", ej. "56912345678").
 export const contact = {
-  email: "tu-correo@ejemplo.cl",
+  email: "contacto@devkode.cl",
   whatsapp: null as string | null,
 };
 
