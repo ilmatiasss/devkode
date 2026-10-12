@@ -1,4 +1,5 @@
 @import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/sora";
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "tailwindcss";
@@ -8,12 +9,13 @@
   --color-surface: #121214;
   --color-line: #26262a;
   --color-fg: #ededee;
-  --color-muted: #8f8f96;
+  --color-muted: #a1a1a9;
   --color-accent: #9b72ff;
   --color-accent-soft: #c4adff; /* tono claro del acento: travesaños del globo */
   --color-on-accent: #0b0b0c; /* color del texto sobre el acento */
 
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora Variable", "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif; /* solo títulos */
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -29,6 +31,12 @@
     color: var(--color-fg);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
   }
 
   ::selection {

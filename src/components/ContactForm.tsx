@@ -40,7 +40,7 @@ export function ContactForm({
   if (status === "ok") {
     return (
       <div role="status" className="bg-bg p-7 text-fg md:p-9">
-        <p className="text-2xl font-medium tracking-tight">¡Gracias! Recibimos tu mensaje.</p>
+        <p className="font-display text-2xl font-medium tracking-tight">¡Gracias! Recibimos tu mensaje.</p>
         <p className="mt-3 leading-relaxed text-muted">Te respondemos a tu correo lo antes posible.</p>
         <button
           type="button"
