@@ -88,6 +88,9 @@ export function Contact() {
             <a href="/privacidad" className="transition-colors hover:text-fg">
               Privacidad
             </a>
+            <a href="/terminos" className="transition-colors hover:text-fg">
+              Términos
+            </a>
           </nav>
           <p className="font-mono text-xs">
             © {new Date().getFullYear()} {site.name} · {site.location}
