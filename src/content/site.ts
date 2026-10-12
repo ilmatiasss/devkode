@@ -19,6 +19,16 @@ export const contact = {
   whatsapp: null as string | null,
 };
 
+// Opciones del formulario de cotización
+export const projectTypes = [
+  "Tienda online",
+  "Landing page",
+  "Web corporativa",
+  "Aplicación web",
+  "Software a medida",
+  "Aún no lo sé",
+];
+
 export const nav = [
   { label: "Proyectos", href: "#proyectos" },
   { label: "Servicios", href: "#servicios" },
