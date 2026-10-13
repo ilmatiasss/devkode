@@ -3,8 +3,8 @@ import { projects } from "@/content/site";
 import { ProjectsGlobe } from "./ProjectsGlobe";
 import { Section } from "./Section";
 
-// Los tres proyectos siempre se ven a la vez: tres columnas parejas en pantallas anchas y
-// tres filas compactas en celular. De fondo, un globo de puntos con los colores de cada uno.
+// Todos los proyectos se ven a la vez: columnas parejas en pantallas anchas (dos y dos en
+// tablet) y filas compactas en celular. De fondo, un globo de puntos con los colores de cada uno.
 export function Projects() {
   return (
     <Section id="proyectos" label="Proyectos" title="Tiendas y plataformas que diseñamos y programamos desde cero.">
@@ -14,11 +14,11 @@ export function Projects() {
           className="pointer-events-none absolute -left-4 -top-12 -z-10 h-[calc(100%+6rem)] w-[calc(100%+2rem)] [mask-image:radial-gradient(ellipse_closest-side,black_82%,transparent)] md:-left-8 md:w-[calc(100%+4rem)]"
         />
 
-        <ul className="grid gap-3 md:grid-cols-3 md:gap-6 lg:gap-10">
+        <ul className="grid gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
           {projects.map((project) => (
             <li
               key={project.name}
-              className="flex items-center gap-4 border border-line bg-bg/40 p-3 md:flex-col md:items-center md:gap-0 md:p-8 md:text-center"
+              className="flex items-center gap-4 border border-line bg-bg/40 p-3 md:flex-col md:items-center md:gap-0 md:p-8 md:text-center lg:p-6"
             >
               <div
                 className="flex size-[84px] shrink-0 items-center justify-center border border-b-2 border-line bg-[#0b0c0f] md:size-[132px]"
@@ -50,7 +50,7 @@ export function Projects() {
                     <span className={project.status ? "text-accent" : undefined}>{project.status ?? "En línea"}</span>
                   </span>
                 </p>
-                <p className="mt-1.5 text-sm leading-snug text-muted md:mt-4 md:max-w-[17rem] md:text-base md:leading-relaxed">
+                <p className="mt-1.5 text-sm leading-snug text-muted md:mt-4 md:max-w-[17rem] md:text-base md:leading-relaxed lg:text-[15px]">
                   {project.description}
                 </p>
                 {project.href ? (

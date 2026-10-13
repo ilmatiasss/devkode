@@ -2,6 +2,7 @@
 import type { StaticImageData } from "next/image";
 import fruterraLogo from "@/assets/logos/fruterra.webp";
 import rutafoodLogo from "@/assets/logos/rutafood.webp";
+import reycarLogo from "@/assets/logos/reycar.webp";
 import solisLogo from "@/assets/logos/solis-racing.webp";
 
 export const site = {
@@ -129,6 +130,15 @@ export const projects: Project[] = [
     color: "#ef3b2d",
     href: "https://solisracingparts.cl",
     domain: "solisracingparts.cl",
+  },
+  {
+    name: "Reycar",
+    kind: "Rediseño web",
+    status: "En desarrollo",
+    description: "Taller de detailing de vehículos con tienda de productos. Rediseño completo de su sitio.",
+    logo: reycarLogo,
+    logoMaxHeight: "86%",
+    color: "#f5b800",
   },
 ];
 

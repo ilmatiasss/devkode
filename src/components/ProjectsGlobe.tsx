@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { sphere, strand } from "@/lib/dots";
 
 // Globo de puntos que gira lento detrás de los proyectos, como el de la portada pero
-// estirado para cubrir los tres. Los puntos toman el color de cada proyecto según su
+// estirado para cubrir todos. Los puntos toman el color de cada proyecto según su
 // posición en pantalla: de izquierda a derecha en escritorio y de arriba abajo en celular,
 // en el mismo orden en que aparecen los proyectos. Las dos hebras de ADN también se tiñen.
 
