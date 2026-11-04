@@ -72,12 +72,17 @@ export default async function Ajustes() {
     <>
       <Encabezado titulo="Ajustes" descripcion="Reparto, moneda, seguridad de las cuentas y avisos." />
       <div className="grid gap-5 lg:grid-cols-2">
-        <Bloque icono="reparto" titulo="Reparto y moneda" descripcion="Los porcentajes deben sumar 100. El dólar se usa para convertir servicios cobrados en USD.">
+        <Bloque icono="reparto" titulo="Socios, reparto y moneda" descripcion="El nombre se muestra en todo el panel. Los porcentajes deben sumar 100. El dólar se usa para convertir servicios cobrados en USD.">
           <form action={guardarAjustes} className="grid gap-4 sm:grid-cols-2">
             {usuarios.map((u) => (
-              <Campo key={u.id} etiqueta={`${u.nombre} (%)`}>
-                <input name={`porcentaje_${u.id}`} type="number" min={0} max={100} required defaultValue={u.porcentaje} className={entrada} />
-              </Campo>
+              <div key={u.id} className="grid grid-cols-[1fr_5.5rem] gap-3 sm:col-span-2">
+                <Campo etiqueta="Nombre">
+                  <input name={`nombre_${u.id}`} required maxLength={80} defaultValue={u.nombre} className={entrada} />
+                </Campo>
+                <Campo etiqueta="%">
+                  <input name={`porcentaje_${u.id}`} type="number" min={0} max={100} required defaultValue={u.porcentaje} aria-label={`Porcentaje de ${u.nombre}`} className={entrada} />
+                </Campo>
+              </div>
             ))}
             <Campo etiqueta="Valor del dólar (pesos)">
               <input name="dolar" required inputMode="numeric" pattern="[\d.$ ]+" defaultValue={dolar} className={entrada} />

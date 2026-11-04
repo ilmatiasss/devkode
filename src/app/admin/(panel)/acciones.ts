@@ -336,13 +336,17 @@ export async function guardarAjustes(fd: FormData) {
   const sql = db();
   const dolar = validar(() => pesosDe(fd, "dolar", 1), "/admin/ajustes");
   const usuarios = await sql<{ id: number }[]>`select id from usuarios order by id`;
-  const porcentajes = usuarios.map((u) => ({ id: u.id, porcentaje: Math.round(Number(fd.get(`porcentaje_${u.id}`))) }));
+  const porcentajes = usuarios.map((u) => ({
+    id: u.id,
+    porcentaje: Math.round(Number(fd.get(`porcentaje_${u.id}`))),
+    nombre: texto(fd, `nombre_${u.id}`, 80) || null, // vacío = se mantiene el actual
+  }));
   if (porcentajes.some((p) => !Number.isFinite(p.porcentaje) || p.porcentaje < 0 || p.porcentaje > 100) || porcentajes.reduce((s, p) => s + p.porcentaje, 0) !== 100) {
     volverCon("/admin/ajustes", "porcentajes");
   }
   await sql.begin(async (tx) => {
     await tx`insert into ajustes (clave, valor) values ('dolar', ${String(dolar)}) on conflict (clave) do update set valor = excluded.valor`;
-    for (const p of porcentajes) await tx`update usuarios set porcentaje = ${p.porcentaje} where id = ${p.id}`;
+    for (const p of porcentajes) await tx`update usuarios set porcentaje = ${p.porcentaje}, nombre = coalesce(${p.nombre}, nombre) where id = ${p.id}`;
   });
   redirect("/admin/ajustes?ok=guardado");
 }
