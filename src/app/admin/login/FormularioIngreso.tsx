@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { entrada } from "@/components/admin/ui";
+import { botonPrimario, entrada } from "@/components/admin/ui";
 import { iniciarSesion } from "./acciones";
 
 export function FormularioIngreso() {
@@ -17,9 +17,9 @@ export function FormularioIngreso() {
         <input name="clave" type="password" required autoComplete="current-password" className={entrada} />
       </label>
       <div aria-live="polite">
-        {estado?.error ? <p className="border border-[#5b2330] bg-[#2a1118] px-3 py-2 text-sm text-[#ffc2cd]">{estado.error}</p> : null}
+        {estado?.error ? <p className="rounded-xl border border-[#5b2330] bg-[#2a1118] px-3 py-2 text-sm text-[#ffc2cd]">{estado.error}</p> : null}
       </div>
-      <button type="submit" disabled={enviando} className="btn btn-primary w-full justify-center disabled:opacity-60">
+      <button type="submit" disabled={enviando} className={`${botonPrimario} w-full`}>
         {enviando ? "Entrando…" : "Entrar"}
       </button>
     </form>

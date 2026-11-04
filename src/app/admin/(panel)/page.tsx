@@ -1,24 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Encabezado, enlace, Etiqueta, Kpi, Tabla, Vacio } from "@/components/admin/ui";
+import { BarrasMeses, Dona } from "@/components/admin/Graficos";
+import { Icono } from "@/components/admin/Icono";
+import { botonPrimario, botonSecundario, Encabezado, Etiqueta, Kpi, Progreso, Seccion, tarjeta, Vacio } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
 import { enPesos, listaServicios, mensualEnPesos, resumenPeriodo, valorDolar } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
-import { clp, diasHasta, dinero, fecha, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
-import { estadosProyecto, type EstadoProyecto } from "@/lib/admin/opciones";
+import { clp, diasHasta, dinero, fecha, hoy, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
+import { colorDeCategoria, estadosProyecto, type EstadoProyecto, etiquetaCategoria, tonoEstado } from "@/lib/admin/opciones";
 
 export const metadata: Metadata = { title: "Resumen" };
 
 type ProyectoActivo = { id: number; nombre: string; cliente: string | null; estado: EstadoProyecto; entrega: string | null; monto: number; cobrado: number };
-type Movimiento = { tipo: "ingreso" | "gasto"; id: number; fecha: string; descripcion: string; monto: number };
+type Movimiento = { tipo: "ingreso" | "gasto"; id: number; fecha: string; descripcion: string; monto: number; categoria: string | null };
+
+const variacion = (actual: number, anterior: number) => (anterior > 0 ? ((actual - anterior) / anterior) * 100 : null);
+
+function saludo() {
+  const hora = Number(new Intl.DateTimeFormat("es-CL", { hour: "numeric", hour12: false, timeZone: "America/Santiago" }).format(new Date()));
+  return hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
+}
 
 export default async function Resumen() {
   const usuario = await exigirUsuario();
   const sql = db();
   const mes = mesActual();
+  const desde6 = `${moverMes(mes, -5)}-01`;
 
-  const [periodo, servicios, dolar, proyectos, movimientos] = await Promise.all([
+  const [periodo, anterior, servicios, dolar, proyectos, movimientos, serie, categorias] = await Promise.all([
     resumenPeriodo(`${mes}-01`, `${moverMes(mes, 1)}-01`),
+    resumenPeriodo(`${moverMes(mes, -1)}-01`, `${mes}-01`),
     listaServicios(),
     valorDolar(),
     sql<ProyectoActivo[]>`
@@ -26,143 +37,215 @@ export default async function Resumen() {
         coalesce((select sum(i.monto) from ingresos i where i.proyecto_id = p.id), 0)::bigint as cobrado
       from proyectos p left join clientes c on c.id = p.cliente_id
       where p.estado in ('en_curso', 'pausado', 'propuesta')
-      order by p.entrega nulls last, p.nombre`,
+      order by array_position(array['en_curso', 'propuesta', 'pausado'], p.estado), p.entrega nulls last, p.nombre
+      limit 6`,
     sql<Movimiento[]>`
-      (select 'ingreso' as tipo, id, fecha, descripcion, monto, creado from ingresos order by creado desc limit 6)
+      (select 'ingreso' as tipo, id, fecha, descripcion, monto, null as categoria, creado from ingresos order by fecha desc, creado desc limit 6)
       union all
-      (select 'gasto' as tipo, id, fecha, descripcion, monto, creado from gastos order by creado desc limit 6)
-      order by creado desc limit 8`,
+      (select 'gasto' as tipo, id, fecha, descripcion, monto, categoria, creado from gastos order by fecha desc, creado desc limit 6)
+      order by fecha desc, creado desc limit 6`,
+    sql<{ mes: string; ingresos: number; gastos: number }[]>`
+      select to_char(m, 'YYYY-MM') as mes,
+        coalesce((select sum(monto) from ingresos where fecha >= m and fecha < m + interval '1 month'), 0)::bigint as ingresos,
+        coalesce((select sum(monto) from gastos where fecha >= m and fecha < m + interval '1 month'), 0)::bigint as gastos
+      from generate_series(${desde6}::date, ${`${mes}-01`}::date, interval '1 month') as m order by m`,
+    sql<{ categoria: string; total: number }[]>`
+      select categoria, sum(monto)::bigint as total from gastos
+      where fecha >= ${`${mes}-01`} and fecha < ${`${moverMes(mes, 1)}-01`}
+      group by categoria order by total desc`,
   ]);
 
   const utilidad = periodo.ingresos - periodo.gastos;
+  const margen = periodo.ingresos > 0 ? Math.round((utilidad / periodo.ingresos) * 100) : null;
   const activos = servicios.filter((s) => s.activo);
   const costoFijo = activos.reduce((suma, s) => suma + mensualEnPesos(s, dolar), 0);
-  const proximos = activos.filter((s) => s.proximo_cobro && diasHasta(s.proximo_cobro) <= 30);
-  const enCurso = proyectos.filter((p) => p.estado !== "propuesta");
-  const porCobrar = enCurso.reduce((suma, p) => suma + Math.max(0, p.monto - p.cobrado), 0);
+  const proximos = activos.filter((s) => s.proximo_cobro && diasHasta(s.proximo_cobro) <= 30).slice(0, 5);
+  const porCobrar = proyectos.filter((p) => p.estado !== "propuesta").reduce((s, p) => s + Math.max(0, p.monto - p.cobrado), 0);
+  const fechaLarga = new Intl.DateTimeFormat("es-CL", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Santiago" }).format(new Date());
 
   return (
     <>
-      <Encabezado titulo={`Hola, ${usuario.nombre.split(" ")[0]}`} descripcion={<span className="capitalize">{nombreMes(mes)}</span>} />
+      <Encabezado
+        titulo={`${saludo()}, ${usuario.nombre.split(" ")[0]}`}
+        descripcion={<span className="inline-block first-letter:uppercase">{fechaLarga}</span>}
+        accion={
+          <>
+            <Link href="/admin/ingresos/nuevo" className={botonPrimario}>
+              <Icono nombre="ingresos" className="size-4" /> Ingreso
+            </Link>
+            <Link href="/admin/gastos/nuevo" className={botonSecundario}>
+              <Icono nombre="gastos" className="size-4" /> Gasto
+            </Link>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Kpi etiqueta="Ingresos del mes" valor={clp(periodo.ingresos)} />
-        <Kpi etiqueta="Gastos del mes" valor={clp(periodo.gastos)} />
-        <Kpi etiqueta="Utilidad del mes" valor={clp(utilidad)} tono={utilidad >= 0 ? "bien" : "mal"} />
-        <Kpi etiqueta="Por cobrar en proyectos" valor={clp(porCobrar)} detalle={enCurso.length === 1 ? "1 proyecto activo" : `${enCurso.length} proyectos activos`} />
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+        <Kpi etiqueta="Ingresos del mes" valor={clp(periodo.ingresos)} icono="ingresos" variacion={variacion(periodo.ingresos, anterior.ingresos)} detalle="vs mes anterior" />
+        <Kpi etiqueta="Gastos del mes" valor={clp(periodo.gastos)} icono="gastos" variacion={variacion(periodo.gastos, anterior.gastos)} invertir detalle="vs mes anterior" />
+        <Kpi etiqueta="Utilidad del mes" valor={clp(utilidad)} icono="billetera" tono={utilidad >= 0 ? "bien" : "mal"} detalle={margen !== null ? `Margen ${margen}%` : undefined} />
+        <Kpi etiqueta="Por cobrar" valor={clp(porCobrar)} icono="reloj" tono="acento" detalle="en proyectos activos" />
       </div>
 
-      <section className="mt-12">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-xl font-medium tracking-tight">Próximos cobros de servicios</h2>
-          <p className="text-sm text-muted">Costo fijo mensual: {clp(costoFijo)}</p>
-        </div>
-        {proximos.length ? (
-          <Tabla>
-            <thead>
-              <tr>
-                <th>Servicio</th>
-                <th>Fecha</th>
-                <th>Monto</th>
-                <th>Paga</th>
-              </tr>
-            </thead>
-            <tbody>
-              {proximos.map((s) => {
-                const dias = diasHasta(s.proximo_cobro!);
+      <div className="mt-4 grid gap-4 md:mt-5 lg:grid-cols-3">
+        <section className={`${tarjeta} aparecer p-5 lg:col-span-2`}>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-medium">Últimos 6 meses</h2>
+            <Link href={`/admin/reparto?anio=${mes.slice(0, 4)}`} className="text-xs text-muted hover:text-fg">
+              Ver el año →
+            </Link>
+          </div>
+          <BarrasMeses datos={serie} />
+        </section>
+        <section className={`${tarjeta} aparecer p-5`}>
+          <h2 className="mb-4 font-medium">
+            Gastos de <span className="capitalize">{nombreMes(mes).split(" ")[0]}</span>
+          </h2>
+          {categorias.length ? (
+            <Dona
+              partes={categorias.map((c) => ({ etiqueta: etiquetaCategoria(c.categoria), valor: c.total, color: colorDeCategoria(c.categoria) }))}
+              centro={clp(periodo.gastos)}
+              subcentro="este mes"
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-muted">Sin gastos este mes.</p>
+          )}
+        </section>
+      </div>
+
+      <div className="mt-10 grid gap-10 lg:grid-cols-3 lg:gap-6">
+        <Seccion
+          titulo="Proyectos activos"
+          className="lg:col-span-2"
+          accion={
+            <Link href="/admin/proyectos" className="text-sm text-muted hover:text-fg">
+              Ver todos →
+            </Link>
+          }
+        >
+          {proyectos.length ? (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {proyectos.map((p, i) => {
+                const avance = p.monto > 0 ? (p.cobrado / p.monto) * 100 : 0;
+                const dias = p.entrega ? diasHasta(p.entrega) : null;
                 return (
-                  <tr key={s.id}>
-                    <td>
-                      <Link href={`/admin/servicios/${s.id}`} className={enlace}>
-                        {s.nombre}
-                      </Link>
-                    </td>
-                    <td>
-                      {fecha(s.proximo_cobro)}{" "}
-                      <Etiqueta tono={dias < 0 ? "mal" : dias <= s.avisar_dias ? "acento" : "neutro"}>
-                        {dias < 0 ? `vencido hace ${-dias} d` : dias === 0 ? "hoy" : `en ${dias} d`}
-                      </Etiqueta>
-                    </td>
-                    <td>
-                      {dinero(s.costo, s.moneda)}
-                      {s.moneda === "USD" ? <span className="text-muted"> ≈ {clp(enPesos(s, dolar))}</span> : null}
-                    </td>
-                    <td className="text-muted">{s.pagado_por_nombre ?? "Empresa"}</td>
-                  </tr>
+                  <li key={p.id} className="aparecer" style={{ animationDelay: `${i * 60}ms` }}>
+                    <Link href={`/admin/proyectos/${p.id}`} className={`${tarjeta} group block p-4 transition hover:-translate-y-0.5 hover:border-accent/50`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium group-hover:text-accent-soft">{p.nombre}</p>
+                          <p className="truncate text-xs text-muted">{p.cliente ?? "Sin cliente"}</p>
+                        </div>
+                        <Etiqueta tono={tonoEstado[p.estado]}>{estadosProyecto[p.estado]}</Etiqueta>
+                      </div>
+                      <div className="mt-4 flex items-baseline justify-between text-xs text-muted">
+                        <span>
+                          <span className="text-sm text-fg">{clp(p.cobrado)}</span> de {clp(p.monto)}
+                        </span>
+                        <span>{Math.round(avance)}%</span>
+                      </div>
+                      <div className="mt-2">
+                        <Progreso valor={avance} etiqueta={`Cobrado de ${p.nombre}`} />
+                      </div>
+                      {dias !== null ? (
+                        <p className={`mt-3 flex items-center gap-1.5 text-xs ${dias < 0 ? "text-[#ff8fa3]" : dias <= 7 ? "text-[#f5c96b]" : "text-muted"}`}>
+                          <Icono nombre="calendario" className="size-3.5" />
+                          {dias < 0 ? `Entrega atrasada ${-dias} d` : dias === 0 ? "Se entrega hoy" : `Entrega en ${dias} d · ${fecha(p.entrega)}`}
+                        </p>
+                      ) : null}
+                    </Link>
+                  </li>
                 );
               })}
-            </tbody>
-          </Tabla>
-        ) : (
-          <Vacio>No hay cobros en los próximos 30 días.</Vacio>
-        )}
-      </section>
-
-      <section className="mt-12">
-        <h2 className="mb-4 text-xl font-medium tracking-tight">Proyectos activos</h2>
-        {proyectos.length ? (
-          <Tabla>
-            <thead>
-              <tr>
-                <th>Proyecto</th>
-                <th>Estado</th>
-                <th>Entrega</th>
-                <th>Cobrado</th>
-                <th>Por cobrar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {proyectos.map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <Link href={`/admin/proyectos/${p.id}`} className={enlace}>
-                      {p.nombre}
-                    </Link>
-                    {p.cliente ? <span className="block text-xs text-muted">{p.cliente}</span> : null}
-                  </td>
-                  <td>
-                    <Etiqueta tono={p.estado === "en_curso" ? "acento" : "neutro"}>{estadosProyecto[p.estado]}</Etiqueta>
-                  </td>
-                  <td>{fecha(p.entrega)}</td>
-                  <td>{clp(p.cobrado)}</td>
-                  <td>{clp(Math.max(0, p.monto - p.cobrado))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Tabla>
-        ) : (
-          <Vacio>
-            Aún no hay proyectos activos.{" "}
-            <Link href="/admin/proyectos/nuevo" className={enlace}>
-              Agrega el primero
-            </Link>
-            .
-          </Vacio>
-        )}
-      </section>
-
-      <section className="mt-12">
-        <h2 className="mb-4 text-xl font-medium tracking-tight">Últimos movimientos</h2>
-        {movimientos.length ? (
-          <ul className="divide-y divide-line border border-line">
-            {movimientos.map((m) => (
-              <li key={`${m.tipo}-${m.id}`} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                <Link href={`/admin/${m.tipo === "ingreso" ? "ingresos" : "gastos"}/${m.id}`} className={enlace}>
-                  {m.descripcion}
+            </ul>
+          ) : (
+            <Vacio
+              icono="proyectos"
+              titulo="Sin proyectos activos"
+              accion={
+                <Link href="/admin/proyectos/nuevo" className={botonPrimario}>
+                  Crear proyecto
                 </Link>
-                <span className="flex items-center gap-4">
-                  <span className="text-muted">{fecha(m.fecha)}</span>
-                  <span className={m.tipo === "ingreso" ? "text-[#7ee2a0]" : "text-fg"}>
-                    {m.tipo === "ingreso" ? "+" : "−"} {clp(m.monto)}
+              }
+            >
+              Registra tu primer proyecto para seguir lo cobrado y lo que falta.
+            </Vacio>
+          )}
+        </Seccion>
+
+        <Seccion
+          titulo="Próximos cobros"
+          accion={<span className="text-xs text-muted">Fijo: {clp(costoFijo)}/mes</span>}
+        >
+          {proximos.length ? (
+            <ol className={`${tarjeta} divide-y divide-line`}>
+              {proximos.map((s) => {
+                const dias = diasHasta(s.proximo_cobro!);
+                const tono = dias < 0 ? "mal" : dias <= s.avisar_dias ? "aviso" : "neutro";
+                return (
+                  <li key={s.id}>
+                    <Link href={`/admin/servicios/${s.id}`} className="flex items-center gap-3 p-4 transition-colors hover:bg-white/[0.02]">
+                      <span className="grid w-11 shrink-0 place-items-center rounded-xl border border-line bg-bg py-1.5 text-center leading-none">
+                        <span className="font-display text-lg font-semibold">{Number(s.proximo_cobro!.slice(8))}</span>
+                        <span className="mt-0.5 text-[10px] text-muted uppercase">{fecha(s.proximo_cobro).split(" ")[1]}</span>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm">{s.nombre}</span>
+                        <span className="text-xs text-muted">
+                          {dinero(s.costo, s.moneda)}
+                          {s.moneda === "USD" ? ` ≈ ${clp(enPesos(s, dolar))}` : ""}
+                        </span>
+                      </span>
+                      <Etiqueta tono={tono}>{dias < 0 ? "Vencido" : dias === 0 ? "Hoy" : `${dias} d`}</Etiqueta>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : (
+            <Vacio icono="servicios" titulo="Nada en 30 días">
+              No hay cobros de servicios en el próximo mes.
+            </Vacio>
+          )}
+        </Seccion>
+      </div>
+
+      <Seccion titulo="Últimos movimientos" className="mt-10">
+        {movimientos.length ? (
+          <ul className={`${tarjeta} divide-y divide-line`}>
+            {movimientos.map((m) => (
+              <li key={`${m.tipo}-${m.id}`}>
+                <Link href={`/admin/${m.tipo === "ingreso" ? "ingresos" : "gastos"}/${m.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.02]">
+                  <span
+                    className="grid size-9 shrink-0 place-items-center rounded-xl"
+                    style={{
+                      background: m.tipo === "ingreso" ? "rgb(126 226 160 / 0.12)" : `color-mix(in srgb, ${colorDeCategoria(m.categoria ?? "otros")} 15%, transparent)`,
+                      color: m.tipo === "ingreso" ? "#7ee2a0" : colorDeCategoria(m.categoria ?? "otros"),
+                    }}
+                  >
+                    <Icono nombre={m.tipo === "ingreso" ? "ingresos" : "gastos"} className="size-4" />
                   </span>
-                </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm">{m.descripcion}</span>
+                    <span className="text-xs text-muted">
+                      {m.fecha === hoy() ? "Hoy" : fecha(m.fecha)}
+                      {m.categoria ? ` · ${etiquetaCategoria(m.categoria)}` : ""}
+                    </span>
+                  </span>
+                  <span className={`text-sm font-medium tabular-nums ${m.tipo === "ingreso" ? "text-[#7ee2a0]" : ""}`}>
+                    {m.tipo === "ingreso" ? "+" : "−"}
+                    {clp(m.monto)}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
         ) : (
-          <Vacio>Todavía no hay ingresos ni gastos registrados.</Vacio>
+          <Vacio icono="billetera" titulo="Aún no hay movimientos">
+            Cuando registres ingresos y gastos aparecerán aquí.
+          </Vacio>
         )}
-      </section>
+      </Seccion>
     </>
   );
 }

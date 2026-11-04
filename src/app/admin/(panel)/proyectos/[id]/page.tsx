@@ -2,26 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
-import { Aviso, botonPeligro, botonPrimario, botonSecundario, Campo, Encabezado, enlace, entrada, Kpi } from "@/components/admin/ui";
+import { Icono } from "@/components/admin/Icono";
+import { InputMonto } from "@/components/admin/InputMonto";
+import { BarraGuardar, botonPeligro, Campo, Encabezado, entrada, Etiqueta, Kpi, Progreso, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
 import { listaClientes } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { clp, fecha } from "@/lib/admin/formato";
-import { claves, estadosProyecto } from "@/lib/admin/opciones";
+import { claves, estadosProyecto, type EstadoProyecto, tonoEstado } from "@/lib/admin/opciones";
 import { eliminarProyecto, guardarProyecto } from "../../acciones";
 
 export const metadata: Metadata = { title: "Proyecto" };
 
-type Proyecto = { id: number; nombre: string; cliente_id: number | null; estado: string; monto: number; inicio: string | null; entrega: string | null; notas: string | null };
+type Proyecto = { id: number; nombre: string; cliente_id: number | null; estado: EstadoProyecto; monto: number; inicio: string | null; entrega: string | null; notas: string | null };
 type Mov = { id: number; fecha: string; descripcion: string; monto: number };
 
-export default async function FichaProyecto({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ ok?: string; error?: string }>;
-}) {
+export default async function FichaProyecto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cliente?: string }> }) {
   await exigirUsuario();
   const { id } = await params;
   const q = await searchParams;
@@ -39,108 +35,125 @@ export default async function FichaProyecto({
 
   const cobrado = ingresos.reduce((s, i) => s + i.monto, 0);
   const gastado = gastos.reduce((s, g) => s + g.monto, 0);
+  const avance = proyecto && proyecto.monto > 0 ? (cobrado / proyecto.monto) * 100 : 0;
+  const clienteInicial = proyecto?.cliente_id ?? (q.cliente && /^\d+$/.test(q.cliente) ? Number(q.cliente) : "");
 
   return (
     <>
-      <Encabezado titulo={proyecto?.nombre ?? "Nuevo proyecto"} descripcion={<Link href="/admin/proyectos" className={enlace}>← Proyectos</Link>} />
-      <Aviso ok={q.ok} error={q.error} />
+      <Encabezado
+        volver={{ href: "/admin/proyectos", texto: "Proyectos" }}
+        titulo={proyecto?.nombre ?? "Nuevo proyecto"}
+        etiqueta={proyecto ? <Etiqueta tono={tonoEstado[proyecto.estado]}>{estadosProyecto[proyecto.estado]}</Etiqueta> : undefined}
+        descripcion={proyecto ? `Valor acordado ${clp(proyecto.monto)}` : "Completa los datos y guárdalo; después podrás registrarle pagos y gastos."}
+      />
 
       {proyecto ? (
-        <div className="mb-10 grid gap-3 sm:grid-cols-3">
-          <Kpi etiqueta="Cobrado" valor={clp(cobrado)} detalle={`de ${clp(proyecto.monto)}`} />
-          <Kpi etiqueta="Por cobrar" valor={clp(Math.max(0, proyecto.monto - cobrado))} />
-          <Kpi etiqueta="Margen (cobrado − gastos)" valor={clp(cobrado - gastado)} tono={cobrado - gastado >= 0 ? "bien" : "mal"} />
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+            <Kpi etiqueta="Cobrado" valor={clp(cobrado)} icono="ingresos" tono="bien" detalle={`${Math.round(avance)}% del total`} />
+            <Kpi etiqueta="Por cobrar" valor={clp(Math.max(0, proyecto.monto - cobrado))} icono="reloj" tono="acento" />
+            <div className="col-span-2 md:col-span-1">
+              <Kpi etiqueta="Margen (cobrado − gastos)" valor={clp(cobrado - gastado)} icono="billetera" tono={cobrado - gastado >= 0 ? "bien" : "mal"} detalle={`${clp(gastado)} en gastos`} />
+            </div>
+          </div>
+          <div className="mt-4 mb-8">
+            <Progreso valor={avance} color={avance >= 100 ? "#7ee2a0" : undefined} etiqueta="Avance de cobro" />
+          </div>
+        </>
       ) : null}
 
-      <form action={guardarProyecto} className="grid max-w-3xl gap-5 sm:grid-cols-2">
-        {proyecto ? <input type="hidden" name="id" value={proyecto.id} /> : null}
-        <Campo etiqueta="Nombre del proyecto" className="sm:col-span-2">
-          <input name="nombre" required maxLength={120} defaultValue={proyecto?.nombre} className={entrada} />
-        </Campo>
-        <Campo etiqueta="Cliente" ayuda={clientes.length ? undefined : "Primero crea el cliente en la sección Clientes."}>
-          <select name="cliente_id" defaultValue={proyecto?.cliente_id ?? ""} className={entrada}>
-            <option value="">Sin cliente</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        </Campo>
-        <Campo etiqueta="Estado">
-          <select name="estado" defaultValue={proyecto?.estado ?? "en_curso"} className={entrada}>
-            {claves(estadosProyecto).map((e) => (
-              <option key={e} value={e}>
-                {estadosProyecto[e]}
-              </option>
-            ))}
-          </select>
-        </Campo>
-        <Campo etiqueta="Valor acordado (pesos)" ayuda="Sin puntos ni decimales, o con puntos: 1.250.000">
-          <input name="monto" required inputMode="numeric" pattern="[\d.$ ]+" defaultValue={proyecto ? String(proyecto.monto) : "0"} className={entrada} />
-        </Campo>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
+        <form action={guardarProyecto} className={`${tarjeta} aparecer grid gap-5 p-5 sm:grid-cols-2 md:p-6`}>
+          <h2 className="flex items-center gap-2 font-medium sm:col-span-2">
+            <Icono nombre="lapiz" className="size-4 text-accent-soft" /> {proyecto ? "Editar datos" : "Datos del proyecto"}
+          </h2>
+          {proyecto ? <input type="hidden" name="id" value={proyecto.id} /> : null}
+          <Campo etiqueta="Nombre del proyecto" className="sm:col-span-2">
+            <input name="nombre" required maxLength={120} placeholder="Ej: Tienda online Fruterra" defaultValue={proyecto?.nombre} className={entrada} />
+          </Campo>
+          <Campo etiqueta="Cliente" ayuda={clientes.length ? undefined : "Primero crea el cliente en Clientes."}>
+            <select name="cliente_id" defaultValue={clienteInicial} className={entrada}>
+              <option value="">Sin cliente</option>
+              {clientes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo etiqueta="Estado">
+            <select name="estado" defaultValue={proyecto?.estado ?? "en_curso"} className={entrada}>
+              {claves(estadosProyecto).map((e) => (
+                <option key={e} value={e}>
+                  {estadosProyecto[e]}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo etiqueta="Valor acordado" className="sm:col-span-2">
+            <InputMonto name="monto" required defaultValue={proyecto?.monto ?? ""} />
+          </Campo>
           <Campo etiqueta="Inicio">
             <input name="inicio" type="date" defaultValue={proyecto?.inicio ?? ""} className={entrada} />
           </Campo>
           <Campo etiqueta="Entrega">
             <input name="entrega" type="date" defaultValue={proyecto?.entrega ?? ""} className={entrada} />
           </Campo>
-        </div>
-        <Campo etiqueta="Notas" className="sm:col-span-2">
-          <textarea name="notas" rows={4} maxLength={4000} defaultValue={proyecto?.notas ?? ""} className={entrada} />
-        </Campo>
-        <div className="flex gap-3 sm:col-span-2">
-          <button type="submit" className={botonPrimario}>
-            Guardar
-          </button>
-          <Link href="/admin/proyectos" className={botonSecundario}>
-            Volver
-          </Link>
-        </div>
-      </form>
+          <Campo etiqueta="Notas" className="sm:col-span-2">
+            <textarea name="notas" rows={4} maxLength={4000} placeholder="Alcance, acuerdos, accesos pendientes…" defaultValue={proyecto?.notas ?? ""} className={entrada} />
+          </Campo>
+          <BarraGuardar cancelar="/admin/proyectos" texto={proyecto ? "Guardar cambios" : "Crear proyecto"} />
+        </form>
 
-      {proyecto ? (
-        <>
-          <div className="mt-12 grid max-w-5xl gap-8 lg:grid-cols-2">
+        {proyecto ? (
+          <div className="space-y-6">
             {[
-              { titulo: "Pagos recibidos", lista: ingresos, ruta: "ingresos", nuevo: "Registrar pago" },
-              { titulo: "Gastos del proyecto", lista: gastos, ruta: "gastos", nuevo: "Registrar gasto" },
-            ].map((bloque) => (
-              <section key={bloque.ruta}>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-medium">{bloque.titulo}</h2>
-                  <Link href={`/admin/${bloque.ruta}/nuevo?proyecto=${proyecto.id}`} className="text-sm text-accent-soft underline underline-offset-4">
-                    {bloque.nuevo}
+              { titulo: "Pagos recibidos", lista: ingresos, ruta: "ingresos", nuevo: "Registrar pago", signo: "+", color: "text-[#7ee2a0]" },
+              { titulo: "Gastos del proyecto", lista: gastos, ruta: "gastos", nuevo: "Registrar gasto", signo: "−", color: "" },
+            ].map((b) => (
+              <section key={b.ruta} className={`${tarjeta} aparecer p-5`}>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="font-medium">{b.titulo}</h2>
+                  <Link href={`/admin/${b.ruta}/nuevo?proyecto=${proyecto.id}`} className="inline-flex items-center gap-1 rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs text-accent-soft hover:bg-accent/20">
+                    <Icono nombre="mas2" className="size-3.5" /> {b.nuevo}
                   </Link>
                 </div>
-                {bloque.lista.length ? (
-                  <ul className="divide-y divide-line border border-line text-sm">
-                    {bloque.lista.map((m) => (
-                      <li key={m.id} className="flex justify-between gap-3 px-4 py-3">
-                        <Link href={`/admin/${bloque.ruta}/${m.id}`} className={enlace}>
-                          {m.descripcion}
+                {b.lista.length ? (
+                  <ul className="-mx-2">
+                    {b.lista.map((m) => (
+                      <li key={m.id}>
+                        <Link href={`/admin/${b.ruta}/${m.id}`} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 text-sm hover:bg-white/[0.03]">
+                          <span className="min-w-0">
+                            <span className="block truncate">{m.descripcion}</span>
+                            <span className="text-xs text-muted">{fecha(m.fecha)}</span>
+                          </span>
+                          <span className={`shrink-0 tabular-nums ${b.color}`}>
+                            {b.signo}
+                            {clp(m.monto)}
+                          </span>
                         </Link>
-                        <span className="whitespace-nowrap text-muted">
-                          {fecha(m.fecha)} · <span className="text-fg">{clp(m.monto)}</span>
-                        </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted">Nada registrado todavía.</p>
+                  <p className="py-4 text-center text-sm text-muted">Nada registrado todavía.</p>
                 )}
               </section>
             ))}
           </div>
-          <form action={eliminarProyecto} className="mt-12">
+        ) : null}
+      </div>
+
+      {proyecto ? (
+        <ZonaPeligro>
+          <form action={eliminarProyecto} className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted">Sus pagos y gastos quedan registrados, pero sin proyecto asociado.</p>
             <input type="hidden" name="id" value={proyecto.id} />
             <BotonConfirmar mensaje="¿Eliminar este proyecto? Sus pagos y gastos quedan registrados, pero sin proyecto asociado." className={botonPeligro}>
-              Eliminar proyecto
+              <Icono nombre="basura" className="size-4" /> Eliminar proyecto
             </BotonConfirmar>
           </form>
-        </>
+        </ZonaPeligro>
       ) : null}
     </>
   );

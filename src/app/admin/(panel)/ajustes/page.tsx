@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Aviso, botonPrimario, botonSecundario, Campo, Encabezado, entrada } from "@/components/admin/ui";
+import { Icono, type NombreIcono } from "@/components/admin/Icono";
+import { botonPrimario, botonSecundario, Campo, Encabezado, entrada, tarjeta } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
 import { listaUsuarios, valorDolar } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
@@ -7,19 +8,25 @@ import { cambiarClave, cerrarDemasSesiones, guardarAjustes } from "../acciones";
 
 export const metadata: Metadata = { title: "Ajustes" };
 
-function Bloque({ titulo, descripcion, children }: { titulo: string; descripcion?: string; children: React.ReactNode }) {
+function Bloque({ titulo, descripcion, icono, children }: { titulo: string; descripcion?: string; icono: NombreIcono; children: React.ReactNode }) {
   return (
-    <section className="max-w-3xl border border-line bg-surface p-6">
-      <h2 className="text-lg font-medium">{titulo}</h2>
-      {descripcion ? <p className="mt-1 text-sm text-muted">{descripcion}</p> : null}
+    <section className={`${tarjeta} aparecer p-5 md:p-6`}>
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent-soft">
+          <Icono nombre={icono} className="size-5" />
+        </span>
+        <div>
+          <h2 className="font-medium">{titulo}</h2>
+          {descripcion ? <p className="mt-0.5 text-sm text-muted">{descripcion}</p> : null}
+        </div>
+      </div>
       <div className="mt-5">{children}</div>
     </section>
   );
 }
 
-export default async function Ajustes({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function Ajustes() {
   const usuario = await exigirUsuario();
-  const q = await searchParams;
   const [usuarios, dolar, [{ sesiones }]] = await Promise.all([
     listaUsuarios(),
     valorDolar(),
@@ -31,11 +38,10 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <Encabezado titulo="Ajustes" />
-      <Aviso ok={q.ok} error={q.error} />
-      <div className="space-y-6">
-        <Bloque titulo="Reparto y moneda" descripcion="Los porcentajes deben sumar 100. El dólar se usa para convertir servicios cobrados en USD.">
-          <form action={guardarAjustes} className="grid gap-4 sm:grid-cols-3">
+      <Encabezado titulo="Ajustes" descripcion="Reparto, moneda, seguridad de las cuentas y avisos." />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Bloque icono="reparto" titulo="Reparto y moneda" descripcion="Los porcentajes deben sumar 100. El dólar se usa para convertir servicios cobrados en USD.">
+          <form action={guardarAjustes} className="grid gap-4 sm:grid-cols-2">
             {usuarios.map((u) => (
               <Campo key={u.id} etiqueta={`${u.nombre} (%)`}>
                 <input name={`porcentaje_${u.id}`} type="number" min={0} max={100} required defaultValue={u.porcentaje} className={entrada} />
@@ -44,7 +50,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
             <Campo etiqueta="Valor del dólar (pesos)">
               <input name="dolar" required inputMode="numeric" pattern="[\d.$ ]+" defaultValue={dolar} className={entrada} />
             </Campo>
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-2">
               <button type="submit" className={botonPrimario}>
                 Guardar
               </button>
@@ -52,8 +58,8 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           </form>
         </Bloque>
 
-        <Bloque titulo="Cambiar mi contraseña" descripcion="Mínimo 12 caracteres. Al cambiarla se cierran tus otras sesiones abiertas.">
-          <form action={cambiarClave} className="grid gap-4 sm:grid-cols-3">
+        <Bloque icono="candado" titulo="Cambiar mi contraseña" descripcion="Mínimo 12 caracteres. Al cambiarla se cierran tus otras sesiones abiertas.">
+          <form action={cambiarClave} className="grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Contraseña actual">
               <input name="actual" type="password" required autoComplete="current-password" className={entrada} />
             </Campo>
@@ -63,7 +69,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
             <Campo etiqueta="Repetir nueva">
               <input name="repetir" type="password" required minLength={12} autoComplete="new-password" className={entrada} />
             </Campo>
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-2">
               <button type="submit" className={botonPrimario}>
                 Cambiar contraseña
               </button>
@@ -73,6 +79,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
 
         {otros.length ? (
           <Bloque
+            icono="clientes"
             titulo="Contraseña temporal para tu socio"
             descripcion="Si tu socio olvidó su contraseña, fija una temporal y pídele que la cambie al entrar. Se le cierran sus sesiones."
           >
@@ -104,7 +111,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           </Bloque>
         ) : null}
 
-        <Bloque titulo="Sesiones" descripcion={`Tienes ${sesiones} sesión${sesiones === 1 ? "" : "es"} abierta${sesiones === 1 ? "" : "s"}, incluida esta.`}>
+        <Bloque icono="salir" titulo="Sesiones" descripcion={`Tienes ${sesiones} sesión${sesiones === 1 ? "" : "es"} abierta${sesiones === 1 ? "" : "s"}, incluida esta.`}>
           <form action={cerrarDemasSesiones}>
             <button type="submit" className={botonSecundario}>
               Cerrar las demás sesiones
@@ -112,7 +119,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           </form>
         </Bloque>
 
-        <Bloque titulo="Avisos de cobro por correo">
+        <Bloque icono="correo" titulo="Avisos de cobro por correo">
           <p className="text-sm leading-relaxed text-muted">
             {avisosListos
               ? "Activos: cada mañana revisamos los servicios y les escribimos a los dos cuando un cobro está por llegar."

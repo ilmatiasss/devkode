@@ -2,25 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
-import { Aviso, botonPeligro, botonPrimario, botonSecundario, Campo, Encabezado, enlace, entrada } from "@/components/admin/ui";
+import { Icono } from "@/components/admin/Icono";
+import { InputMonto } from "@/components/admin/InputMonto";
+import { Selector } from "@/components/admin/Selector";
+import { BarraGuardar, botonPeligro, Campo, Encabezado, enlace, entrada, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
 import { listaProyectos, listaUsuarios } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { hoy } from "@/lib/admin/formato";
-import { categoriasGasto, claves } from "@/lib/admin/opciones";
+import { categoriasGasto, claves, colorDeCategoria } from "@/lib/admin/opciones";
 import { eliminarGasto, guardarGasto } from "../../acciones";
 
 export const metadata: Metadata = { title: "Gasto" };
 
 type Gasto = { id: number; fecha: string; descripcion: string; categoria: string; monto: number; pagado_por: number | null; proyecto_id: number | null; servicio_id: number | null; notas: string | null };
 
-export default async function FichaGasto({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ ok?: string; error?: string; proyecto?: string }>;
-}) {
+export default async function FichaGasto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
   const usuario = await exigirUsuario();
   const { id } = await params;
   const q = await searchParams;
@@ -37,48 +34,46 @@ export default async function FichaGasto({
 
   return (
     <>
-      <Encabezado titulo={gasto ? "Editar gasto" : "Registrar gasto"} descripcion={<Link href="/admin/gastos" className={enlace}>← Gastos</Link>} />
-      <Aviso ok={q.ok} error={q.error} />
-      {gasto?.servicio_id ? (
-        <p className="mb-6 text-sm text-muted">
-          Este gasto viene de un{" "}
-          <Link href={`/admin/servicios/${gasto.servicio_id}`} className={enlace}>
-            servicio contratado
-          </Link>
-          .
-        </p>
-      ) : null}
-      <form action={guardarGasto} className="grid max-w-3xl gap-5 sm:grid-cols-2">
+      <Encabezado
+        volver={{ href: "/admin/gastos", texto: "Gastos" }}
+        titulo={gasto ? "Editar gasto" : "Registrar gasto"}
+        descripcion={
+          gasto?.servicio_id ? (
+            <>
+              Viene de un{" "}
+              <Link href={`/admin/servicios/${gasto.servicio_id}`} className={enlace}>
+                servicio contratado
+              </Link>
+              .
+            </>
+          ) : (
+            "Cualquier cosa que haya salido de la empresa o de su bolsillo."
+          )
+        }
+      />
+      <form action={guardarGasto} className={`${tarjeta} aparecer grid max-w-3xl gap-5 p-5 sm:grid-cols-2 md:p-7`}>
         {gasto ? <input type="hidden" name="id" value={gasto.id} /> : null}
+        <div className="rounded-2xl bg-[radial-gradient(120%_120%_at_0%_0%,rgb(255_143_163/0.1),transparent_60%)] p-4 sm:col-span-2 md:p-5">
+          <p className="mb-2 flex items-center gap-2 text-sm text-[#ff8fa3]">
+            <Icono nombre="gastos" className="size-4" /> Monto del gasto
+          </p>
+          <InputMonto name="monto" required grande ariaLabel="Monto del gasto" defaultValue={gasto?.monto ?? ""} />
+        </div>
         <Campo etiqueta="Descripción" className="sm:col-span-2">
           <input name="descripcion" required maxLength={200} placeholder="Ej: Dominio fruterra.cl" defaultValue={gasto?.descripcion} className={entrada} />
         </Campo>
-        <Campo etiqueta="Monto (pesos)">
-          <input name="monto" required inputMode="numeric" pattern="[\d.$ ]+" defaultValue={gasto ? String(gasto.monto) : ""} className={entrada} />
-        </Campo>
+        <div className="sm:col-span-2">
+          <Selector
+            name="categoria"
+            etiqueta="Categoría"
+            inicial={gasto?.categoria ?? "otros"}
+            opciones={claves(categoriasGasto).map((c) => ({ valor: c, texto: categoriasGasto[c], color: colorDeCategoria(c) }))}
+          />
+        </div>
         <Campo etiqueta="Fecha">
           <input name="fecha" type="date" required defaultValue={gasto?.fecha ?? hoy()} className={entrada} />
         </Campo>
-        <Campo etiqueta="Categoría">
-          <select name="categoria" defaultValue={gasto?.categoria ?? "otros"} className={entrada}>
-            {claves(categoriasGasto).map((c) => (
-              <option key={c} value={c}>
-                {categoriasGasto[c]}
-              </option>
-            ))}
-          </select>
-        </Campo>
-        <Campo etiqueta="¿Quién lo pagó?" ayuda="Si lo pagó uno de ustedes de su bolsillo, se le devuelve en el reparto.">
-          <select name="pagado_por" defaultValue={gasto ? (gasto.pagado_por ?? "") : usuario.id} className={entrada}>
-            <option value="">Cuenta de la empresa</option>
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nombre}
-              </option>
-            ))}
-          </select>
-        </Campo>
-        <Campo etiqueta="Proyecto (opcional)" className="sm:col-span-2">
+        <Campo etiqueta="Proyecto (opcional)">
           <select name="proyecto_id" defaultValue={proyectoInicial} className={entrada}>
             <option value="">Gasto general de DevKode</option>
             {proyectos.map((p) => (
@@ -88,25 +83,31 @@ export default async function FichaGasto({
             ))}
           </select>
         </Campo>
+        <div className="sm:col-span-2">
+          <Selector
+            name="pagado_por"
+            etiqueta="¿Quién lo pagó?"
+            inicial={gasto ? String(gasto.pagado_por ?? "") : String(usuario.id)}
+            opciones={[{ valor: "", texto: "Cuenta de la empresa" }, ...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0] }))]}
+          />
+          <p className="mt-2 text-xs text-muted">Si lo pagó uno de ustedes de su bolsillo, se le devuelve en el reparto.</p>
+        </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Número de boleta, enlace a la factura…" defaultValue={gasto?.notas ?? ""} className={entrada} />
         </Campo>
-        <div className="flex gap-3 sm:col-span-2">
-          <button type="submit" className={botonPrimario}>
-            Guardar
-          </button>
-          <Link href="/admin/gastos" className={botonSecundario}>
-            Cancelar
-          </Link>
-        </div>
+        <BarraGuardar cancelar="/admin/gastos" texto={gasto ? "Guardar cambios" : "Registrar gasto"} />
       </form>
       {gasto ? (
-        <form action={eliminarGasto} className="mt-12">
-          <input type="hidden" name="id" value={gasto.id} />
-          <BotonConfirmar mensaje="¿Eliminar este gasto?" className={botonPeligro}>
-            Eliminar gasto
-          </BotonConfirmar>
-        </form>
+        <div className="max-w-3xl">
+          <ZonaPeligro>
+            <form action={eliminarGasto}>
+              <input type="hidden" name="id" value={gasto.id} />
+              <BotonConfirmar mensaje="¿Eliminar este gasto?" className={botonPeligro}>
+                <Icono nombre="basura" className="size-4" /> Eliminar gasto
+              </BotonConfirmar>
+            </form>
+          </ZonaPeligro>
+        </div>
       ) : null}
     </>
   );

@@ -76,3 +76,57 @@
     background: var(--color-fg);
   }
 }
+
+/* ---- Panel de administración ---- */
+@layer components {
+  .panel {
+    background:
+      radial-gradient(60rem 30rem at 80% -10%, rgb(155 114 255 / 0.09), transparent 60%),
+      radial-gradient(40rem 24rem at -10% 110%, rgb(155 114 255 / 0.05), transparent 60%),
+      var(--color-bg);
+    background-attachment: fixed;
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes crecer {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes llenar {
+    from {
+      width: 0;
+    }
+  }
+
+  .aparecer {
+    animation: aparecer 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .crecer {
+    animation: crecer 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .barra {
+    animation: llenar 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aparecer,
+    .crecer,
+    .barra {
+      animation: none;
+    }
+  }
+}
+

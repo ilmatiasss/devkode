@@ -31,3 +31,26 @@ export type Ciclo = keyof typeof ciclos;
 export const mesesPorCiclo: Record<Ciclo, number> = { mensual: 1, trimestral: 3, anual: 12, unico: 0 };
 
 export const monedas = ["CLP", "USD"] as const;
+
+// Color de cada categoría en gráficos y listas
+export const colorCategoria: Record<string, string> = {
+  hosting: "#9b72ff",
+  dominios: "#60a5fa",
+  correo: "#34d399",
+  software: "#f472b6",
+  publicidad: "#fbbf24",
+  equipos: "#22d3ee",
+  freelance: "#fb923c",
+  impuestos: "#f87171",
+  banco: "#94a3b8",
+  otros: "#6b7280",
+};
+export const colorDeCategoria = (c: string) => colorCategoria[c] ?? "#6b7280";
+
+export const tonoEstado: Record<string, "acento" | "neutro" | "bien" | "mal" | "aviso"> = {
+  propuesta: "aviso",
+  en_curso: "acento",
+  pausado: "neutro",
+  terminado: "bien",
+  cancelado: "mal",
+};

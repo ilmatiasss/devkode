@@ -22,11 +22,12 @@ export default async function Login() {
   const listo = dbConfigurada && (await hayUsuarios());
 
   return (
-    <main className="grid min-h-svh place-items-center px-5 py-12">
-      <div className="w-full max-w-sm">
+    <main className="panel relative grid min-h-svh place-items-center overflow-hidden px-5 py-12">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(color-mix(in_srgb,var(--color-accent)_22%,transparent)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_40%,black,transparent)] [background-size:22px_22px]" />
+      <div className="aparecer relative w-full max-w-sm">
         <Logo />
         <h1 className="mt-8 text-2xl font-medium tracking-tight">Panel de administración</h1>
-        <div className="mt-6 border border-line bg-surface p-6">
+        <div className="mt-6 rounded-2xl border border-line bg-surface/90 p-6 shadow-[0_30px_80px_-30px_rgb(155_114_255/0.35)] backdrop-blur">
           {listo ? (
             <FormularioIngreso />
           ) : (

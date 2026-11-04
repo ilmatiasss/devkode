@@ -24,7 +24,8 @@ async function disponible() {
 export default async function Configurar() {
   if (!(await disponible())) notFound();
   return (
-    <main className="mx-auto max-w-2xl px-5 py-12">
+    <main className="panel min-h-svh px-5 py-12">
+      <div className="aparecer mx-auto max-w-2xl">
       <Logo />
       <h1 className="mt-8 text-2xl font-medium tracking-tight">Configuración inicial del panel</h1>
       <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -33,6 +34,7 @@ export default async function Configurar() {
       </p>
       <div className="mt-8">
         <FormularioConfiguracion />
+      </div>
       </div>
     </main>
   );
