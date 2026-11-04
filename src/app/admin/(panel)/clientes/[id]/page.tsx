@@ -43,18 +43,18 @@ export default async function FichaCliente({
           <input name="nombre" required maxLength={120} defaultValue={cliente?.nombre} className={entrada} />
         </Campo>
         <Campo etiqueta="Persona de contacto">
-          <input name="contacto" maxLength={120} defaultValue={cliente?.contacto ?? ""} className={entrada} />
+          <input name="contacto" required maxLength={120} defaultValue={cliente?.contacto ?? ""} className={entrada} />
         </Campo>
-        <Campo etiqueta="RUT">
+        <Campo etiqueta="RUT (opcional)">
           <input name="rut" maxLength={20} defaultValue={cliente?.rut ?? ""} className={entrada} />
         </Campo>
-        <Campo etiqueta="Correo">
+        <Campo etiqueta="Correo (opcional)">
           <input name="email" type="email" maxLength={200} defaultValue={cliente?.email ?? ""} className={entrada} />
         </Campo>
         <Campo etiqueta="Teléfono">
-          <input name="telefono" type="tel" maxLength={40} defaultValue={cliente?.telefono ?? ""} className={entrada} />
+          <input name="telefono" type="tel" required maxLength={40} defaultValue={cliente?.telefono ?? ""} className={entrada} />
         </Campo>
-        <Campo etiqueta="Notas" className="sm:col-span-2">
+        <Campo etiqueta="Notas (opcional)" className="sm:col-span-2">
           <textarea name="notas" rows={4} maxLength={4000} defaultValue={cliente?.notas ?? ""} className={entrada} />
         </Campo>
         <div className="flex gap-3 sm:col-span-2">

@@ -37,6 +37,9 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
               <th>Contacto</th>
               <th>Proyectos</th>
               <th>Cobrado en total</th>
+              <th>
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -50,6 +53,11 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
                 <td className="text-muted">{[c.contacto, c.email, c.telefono].filter(Boolean).join(" · ") || "—"}</td>
                 <td>{c.proyectos}</td>
                 <td>{clp(c.facturado)}</td>
+                <td className="text-right">
+                  <Link href={`/admin/clientes/${c.id}`} className="text-xs text-accent-soft underline underline-offset-4 hover:text-fg">
+                    Editar
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

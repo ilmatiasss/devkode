@@ -47,6 +47,9 @@ export default async function Ingresos({ searchParams }: { searchParams: Promise
               <th>Proyecto</th>
               <th>Lo recibió</th>
               <th className="text-right">Monto</th>
+              <th>
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -69,6 +72,11 @@ export default async function Ingresos({ searchParams }: { searchParams: Promise
                 </td>
                 <td className="text-muted">{f.recibio ?? "Empresa"}</td>
                 <td className="text-right whitespace-nowrap">{clp(f.monto)}</td>
+                <td className="text-right">
+                  <Link href={`/admin/ingresos/${f.id}`} className="text-xs text-accent-soft underline underline-offset-4 hover:text-fg">
+                    Editar
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

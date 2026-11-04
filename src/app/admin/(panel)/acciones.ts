@@ -58,9 +58,9 @@ export async function guardarCliente(fd: FormData) {
   const datos = validar(
     () => ({
       nombre: texto(fd, "nombre", 120, true),
-      contacto: opcional(fd, "contacto", 120),
+      contacto: texto(fd, "contacto", 120, true),
       email: opcional(fd, "email", 200),
-      telefono: opcional(fd, "telefono", 40),
+      telefono: texto(fd, "telefono", 40, true),
       rut: opcional(fd, "rut", 20),
       notas: opcional(fd, "notas", 4000),
     }),

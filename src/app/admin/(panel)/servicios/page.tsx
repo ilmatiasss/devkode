@@ -77,7 +77,10 @@ export default async function Servicios({ searchParams }: { searchParams: Promis
                   </td>
                   <td className="text-muted">{s.pagado_por_nombre ?? "Empresa"}</td>
                   <td className="text-right">
-                    <form action={registrarPagoServicio}>
+                    <Link href={`/admin/servicios/${s.id}`} className="mr-4 text-xs text-accent-soft underline underline-offset-4 hover:text-fg">
+                      Editar
+                    </Link>
+                    <form action={registrarPagoServicio} className="inline">
                       <input type="hidden" name="id" value={s.id} />
                       <input type="hidden" name="monto" value={enPesos(s, dolar)} />
                       <input type="hidden" name="fecha" value={s.proximo_cobro && dias !== null && dias <= 0 ? s.proximo_cobro : hoy()} />

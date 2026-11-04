@@ -59,6 +59,9 @@ export default async function Gastos({ searchParams }: { searchParams: Promise<{
               <th>Categoría</th>
               <th>Pagó</th>
               <th className="text-right">Monto</th>
+              <th>
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -74,6 +77,11 @@ export default async function Gastos({ searchParams }: { searchParams: Promise<{
                 <td className="text-muted">{etiquetaCategoria(f.categoria)}</td>
                 <td className="text-muted">{f.pago ?? "Empresa"}</td>
                 <td className="text-right whitespace-nowrap">{clp(f.monto)}</td>
+                <td className="text-right">
+                  <Link href={`/admin/gastos/${f.id}`} className="text-xs text-accent-soft underline underline-offset-4 hover:text-fg">
+                    Editar
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

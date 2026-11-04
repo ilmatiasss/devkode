@@ -42,6 +42,9 @@ export default async function Proyectos({ searchParams }: { searchParams: Promis
               <th>Cobrado</th>
               <th>Por cobrar</th>
               <th>Gastos</th>
+              <th>
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -61,6 +64,11 @@ export default async function Proyectos({ searchParams }: { searchParams: Promis
                 <td>{clp(p.cobrado)}</td>
                 <td>{clp(Math.max(0, p.monto - p.cobrado))}</td>
                 <td className="text-muted">{clp(p.gastado)}</td>
+                <td className="text-right">
+                  <Link href={`/admin/proyectos/${p.id}`} className="text-xs text-accent-soft underline underline-offset-4 hover:text-fg">
+                    Editar
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
