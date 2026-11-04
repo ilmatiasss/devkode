@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { hashClave, verificarClave } from "./clave";
-import { db, dbConfigurada } from "./db";
+import { asegurarEsquema, db, dbConfigurada } from "./db";
 
 // Sesiones guardadas en la base de datos. La cookie lleva un token aleatorio; en la base solo se
 // guarda su huella SHA-256, así que una copia filtrada de la base no sirve para entrar.
@@ -40,6 +40,7 @@ export const usuarioActual = cache(async (): Promise<Usuario | null> => {
   // Se leen las cookies antes que nada: así la página nunca se genera de antemano al desplegar
   const token = (await cookies()).get(COOKIE)?.value;
   if (!dbConfigurada || !token || token.length > 100) return null;
+  await asegurarEsquema();
   const [usuario] = await db()<Usuario[]>`
     select u.id, u.email, u.nombre, u.porcentaje
     from sesiones s join usuarios u on u.id = s.usuario_id
@@ -52,6 +53,15 @@ export async function exigirUsuario() {
   const usuario = await usuarioActual();
   if (!usuario) redirect("/admin/login");
   return usuario;
+}
+
+// Verifica la sesión al mismo tiempo que la página consulta sus datos (en vez de una cosa tras
+// otra): ahorra una ida y vuelta a la base en cada navegación. La página debe hacer
+// `await sesion` antes de mostrar algo; si no hay sesión, ahí redirige al ingreso.
+export function sesionEnParalelo() {
+  const sesion = exigirUsuario();
+  sesion.catch(() => {}); // se maneja en el `await` de la página
+  return sesion;
 }
 
 export async function cerrarSesion() {

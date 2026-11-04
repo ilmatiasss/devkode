@@ -2,40 +2,63 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
+import { CampoReparto } from "@/components/admin/CampoReparto";
+import { HistorialMantencion } from "@/components/admin/HistorialMantencion";
+import { Selector } from "@/components/admin/Selector";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
-import { BarraGuardar, botonPeligro, Campo, Encabezado, entrada, Etiqueta, Kpi, Progreso, tarjeta, ZonaPeligro } from "@/components/admin/ui";
+import { BarraGuardar, botonPeligro, botonPrimario, Campo, Encabezado, entrada, Etiqueta, Kpi, Progreso, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { listaClientes } from "@/lib/admin/consultas";
+import { estadoMantencion, listaClientes, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
-import { clp, fecha } from "@/lib/admin/formato";
+import { clp, fecha, hoy, nombreMes } from "@/lib/admin/formato";
 import { claves, estadosProyecto, type EstadoProyecto, tonoEstado } from "@/lib/admin/opciones";
-import { eliminarProyecto, guardarProyecto } from "../../acciones";
+import { eliminarProyecto, guardarProyecto, registrarMantencion } from "../../acciones";
 
 export const metadata: Metadata = { title: "Proyecto" };
 
-type Proyecto = { id: number; nombre: string; cliente_id: number | null; estado: EstadoProyecto; monto: number; inicio: string | null; entrega: string | null; notas: string | null };
-type Mov = { id: number; fecha: string; descripcion: string; monto: number };
+type Proyecto = {
+  id: number;
+  nombre: string;
+  cliente_id: number | null;
+  estado: EstadoProyecto;
+  monto: number;
+  inicio: string | null;
+  entrega: string | null;
+  notas: string | null;
+  mant_activa: boolean;
+  mant_monto: number;
+  mant_dia: number;
+  mant_desde: string | null;
+  reparto: Reparto;
+};
+type Mov = { id: number; fecha: string; descripcion: string; monto: number; mant_mes?: string | null };
 
 export default async function FichaProyecto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cliente?: string }> }) {
-  await exigirUsuario();
   const { id } = await params;
   const q = await searchParams;
   const nuevo = id === "nuevo";
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
 
   const sql = db();
-  const [[proyecto], clientes, ingresos, gastos] = await Promise.all([
+  const [, [proyecto], clientes, usuarios, ingresos, gastos] = await Promise.all([
+    exigirUsuario(),
     nuevo ? Promise.resolve([undefined]) : sql<Proyecto[]>`select * from proyectos where id = ${Number(id)}`,
     listaClientes(),
-    nuevo ? Promise.resolve([] as Mov[]) : sql<Mov[]>`select id, fecha, descripcion, monto from ingresos where proyecto_id = ${Number(id)} order by fecha desc`,
+    listaUsuarios(),
+    nuevo ? Promise.resolve([] as Mov[]) : sql<Mov[]>`select id, fecha, descripcion, monto, mant_mes from ingresos where proyecto_id = ${Number(id)} order by fecha desc`,
     nuevo ? Promise.resolve([] as Mov[]) : sql<Mov[]>`select id, fecha, descripcion, monto from gastos where proyecto_id = ${Number(id)} order by fecha desc`,
   ]);
   if (!nuevo && !proyecto) notFound();
 
-  const cobrado = ingresos.reduce((s, i) => s + i.monto, 0);
+  // Lo cobrado del valor acordado (sin mantenciones) y lo cobrado en mantenciones, por separado
+  const cobrado = ingresos.filter((i) => !i.mant_mes).reduce((s, i) => s + i.monto, 0);
+  const cobradoMant = ingresos.filter((i) => i.mant_mes).reduce((s, i) => s + i.monto, 0);
   const gastado = gastos.reduce((s, g) => s + g.monto, 0);
   const avance = proyecto && proyecto.monto > 0 ? (cobrado / proyecto.monto) * 100 : 0;
+  const dia = hoy();
+  const mant = proyecto?.mant_activa ? estadoMantencion({ ...proyecto, inicio: proyecto.inicio, pagados: ingresos.flatMap((i) => (i.mant_mes ? [i.mant_mes] : [])) }, dia) : null;
+  const pagosMantencion = ingresos.filter((i) => i.mant_mes);
   const clienteInicial = proyecto?.cliente_id ?? (q.cliente && /^\d+$/.test(q.cliente) ? Number(q.cliente) : "");
 
   return (
@@ -53,7 +76,13 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
             <Kpi etiqueta="Cobrado" valor={clp(cobrado)} icono="ingresos" tono="bien" detalle={`${Math.round(avance)}% del total`} />
             <Kpi etiqueta="Por cobrar" valor={clp(Math.max(0, proyecto.monto - cobrado))} icono="reloj" tono="acento" />
             <div className="col-span-2 md:col-span-1">
-              <Kpi etiqueta="Margen (cobrado − gastos)" valor={clp(cobrado - gastado)} icono="billetera" tono={cobrado - gastado >= 0 ? "bien" : "mal"} detalle={`${clp(gastado)} en gastos`} />
+              <Kpi
+                etiqueta="Margen (todo lo cobrado − gastos)"
+                valor={clp(cobrado + cobradoMant - gastado)}
+                icono="billetera"
+                tono={cobrado + cobradoMant - gastado >= 0 ? "bien" : "mal"}
+                detalle={`${cobradoMant ? `${clp(cobradoMant)} en mantenciones · ` : ""}${clp(gastado)} en gastos`}
+              />
             </div>
           </div>
           <div className="mt-4 mb-8">
@@ -63,7 +92,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-        <form action={guardarProyecto} className={`${tarjeta} aparecer grid gap-5 p-5 sm:grid-cols-2 md:p-6`}>
+        <form action={guardarProyecto} className={`${tarjeta} aparecer grid min-w-0 gap-5 p-5 sm:grid-cols-2 md:p-6`}>
           <h2 className="flex items-center gap-2 font-medium sm:col-span-2">
             <Icono nombre="lapiz" className="size-4 text-accent-soft" /> {proyecto ? "Editar datos" : "Datos del proyecto"}
           </h2>
@@ -99,6 +128,31 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
           <Campo etiqueta="Entrega">
             <input name="entrega" type="date" defaultValue={proyecto?.entrega ?? ""} className={entrada} />
           </Campo>
+          <fieldset className="min-w-0 rounded-2xl border border-line bg-bg/40 p-4 sm:col-span-2">
+            <legend className="px-1 text-sm font-medium text-[#c9c9cf]">Mantención mensual</legend>
+            <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+              <span>
+                Cobrar mantención todos los meses
+                <span className="block text-xs text-muted">Aparece en Mantenciones y les avisamos por correo el día de cobro.</span>
+              </span>
+              <input type="checkbox" name="mant_activa" defaultChecked={proyecto?.mant_activa ?? false} className="size-5 shrink-0 accent-[var(--color-accent)]" />
+            </label>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <Campo etiqueta="Monto mensual">
+                <InputMonto name="mant_monto" defaultValue={proyecto?.mant_monto || ""} />
+              </Campo>
+              <Campo etiqueta="Día de cobro">
+                <input name="mant_dia" type="number" min={1} max={28} defaultValue={proyecto?.mant_dia ?? 5} className={entrada} />
+              </Campo>
+              <Campo etiqueta="Desde">
+                <input name="mant_desde" type="date" defaultValue={proyecto?.mant_desde ?? ""} className={entrada} />
+              </Campo>
+            </div>
+          </fieldset>
+          <div className="sm:col-span-2">
+            <CampoReparto socios={usuarios} inicial={proyecto?.reparto ?? null} textoBase="Porcentajes generales" etiqueta="Cómo se reparte este proyecto" />
+            <p className="mt-2 text-xs text-muted">Se aplica a todos sus pagos y gastos, salvo que uno tenga su propio reparto.</p>
+          </div>
           <Campo etiqueta="Notas" className="sm:col-span-2">
             <textarea name="notas" rows={4} maxLength={4000} placeholder="Alcance, acuerdos, accesos pendientes…" defaultValue={proyecto?.notas ?? ""} className={entrada} />
           </Campo>
@@ -107,6 +161,51 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
 
         {proyecto ? (
           <div className="space-y-6">
+            {proyecto.mant_activa && mant ? (
+              <section className={`${tarjeta} aparecer bg-[radial-gradient(120%_120%_at_100%_0%,rgb(155_114_255/0.12),transparent_60%)] p-5`}>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h2 className="flex items-center gap-2 font-medium">
+                    <Icono nombre="repetir" className="size-4 text-accent-soft" /> Mantención mensual
+                  </h2>
+                  <Etiqueta tono={mant.pendientes.some((m) => m < dia.slice(0, 7)) ? "mal" : mant.mesActualPagado ? "bien" : "aviso"}>
+                    {mant.pendientes.length ? `${mant.pendientes.length} pendiente${mant.pendientes.length === 1 ? "" : "s"}` : "Al día"}
+                  </Etiqueta>
+                </div>
+                <p className="mb-4 text-sm text-muted">
+                  {clp(proyecto.mant_monto)} al mes, el día {proyecto.mant_dia}
+                </p>
+                <HistorialMantencion pagados={pagosMantencion.map((i) => i.mant_mes!)} pendientes={mant.pendientes} desde={(proyecto.mant_desde ?? proyecto.inicio ?? dia).slice(0, 7)} mesHoy={dia.slice(0, 7)} />
+                {mant.siguiente ? (
+                  <form action={registrarMantencion} className="mt-5 space-y-3">
+                    <input type="hidden" name="proyecto_id" value={proyecto.id} />
+                    <input type="hidden" name="volver" value="proyecto" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Campo etiqueta="Mes">
+                        <select name="mes" defaultValue={mant.siguiente} className={entrada}>
+                          {[...new Set([...mant.pendientes, mant.siguiente])].map((m) => (
+                            <option key={m} value={m}>
+                              {nombreMes(m)}
+                            </option>
+                          ))}
+                        </select>
+                      </Campo>
+                      <Campo etiqueta="Monto">
+                        <InputMonto name="monto" required defaultValue={proyecto.mant_monto} />
+                      </Campo>
+                    </div>
+                    <Selector
+                      name="recibido_por"
+                      etiqueta="¿Dónde llegó?"
+                      inicial=""
+                      opciones={[{ valor: "", texto: "Empresa" }, ...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0] }))]}
+                    />
+                    <button type="submit" className={`${botonPrimario} w-full`}>
+                      <Icono nombre="check" className="size-4" /> Registrar mantención
+                    </button>
+                  </form>
+                ) : null}
+              </section>
+            ) : null}
             {[
               { titulo: "Pagos recibidos", lista: ingresos, ruta: "ingresos", nuevo: "Registrar pago", signo: "+", color: "text-[#7ee2a0]" },
               { titulo: "Gastos del proyecto", lista: gastos, ruta: "gastos", nuevo: "Registrar gasto", signo: "−", color: "" },

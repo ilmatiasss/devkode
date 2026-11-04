@@ -101,4 +101,31 @@ create table if not exists avisos_enviados (
   enviado timestamptz not null default now(),
   primary key (servicio_id, fecha_cobro)
 );
+
+-- Versión 2: mantención mensual, reparto por proyecto o movimiento y gastos más detallados
+alter table proyectos add column if not exists mant_activa boolean not null default false;
+alter table proyectos add column if not exists mant_monto integer not null default 0;
+alter table proyectos add column if not exists mant_dia integer not null default 5;
+alter table proyectos add column if not exists mant_desde date;
+-- Reparto personalizado: {"<id de usuario>": porcentaje}. Vacío = se usan los porcentajes generales
+alter table proyectos add column if not exists reparto jsonb;
+alter table ingresos add column if not exists reparto jsonb;
+-- Mes ("AAAA-MM") que paga, cuando el ingreso es una mantención mensual
+alter table ingresos add column if not exists mant_mes text;
+create unique index if not exists ingresos_mantencion on ingresos (proyecto_id, mant_mes) where mant_mes is not null;
+alter table gastos add column if not exists reparto jsonb;
+alter table gastos add column if not exists proveedor text;
+alter table gastos add column if not exists documento text;
+
+create table if not exists avisos_mantencion (
+  proyecto_id integer not null references proyectos(id) on delete cascade,
+  mes text not null,
+  enviado timestamptz not null default now(),
+  primary key (proyecto_id, mes)
+);
+
+insert into ajustes (clave, valor) values ('esquema', '2') on conflict (clave) do update set valor = excluded.valor;
 `;
+
+// Se sube cada vez que el esquema cambia: el panel lo aplica solo la primera vez que lo necesita
+export const VERSION_ESQUEMA = "2";

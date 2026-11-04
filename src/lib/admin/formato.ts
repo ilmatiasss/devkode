@@ -62,6 +62,7 @@ export const MENSAJES = {
   clave: "La contraseña actual no es correcta",
   claveCorta: "La nueva contraseña debe tener al menos 12 caracteres",
   claveDistinta: "Las contraseñas nuevas no coinciden",
+  mantencionRepetida: "Esa mantención ya estaba registrada para ese mes",
 } as const;
 export type CodigoError = keyof typeof MENSAJES;
 export const mensajeDe = (codigo: unknown) => (typeof codigo === "string" && codigo in MENSAJES ? MENSAJES[codigo as CodigoError] : null);

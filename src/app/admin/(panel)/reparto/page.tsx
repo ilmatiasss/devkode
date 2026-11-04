@@ -4,7 +4,7 @@ import { BarrasMeses } from "@/components/admin/Graficos";
 import { Icono } from "@/components/admin/Icono";
 import { Avatar, colorDe, Encabezado, Kpi, Pestanas, SelectorMes, tarjeta } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { listaUsuarios, resumenPeriodo } from "@/lib/admin/consultas";
+import { calcularReparto, listaUsuarios, resumenPeriodo } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { clp, esMes, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
 
@@ -23,15 +23,16 @@ function periodoDe(q: Busqueda) {
 }
 
 export default async function Reparto({ searchParams }: { searchParams: Promise<Busqueda> }) {
-  await exigirUsuario();
   const q = await searchParams;
   const periodo = periodoDe(q);
-  const [resumen, usuarios] = await Promise.all([resumenPeriodo(periodo.desde, periodo.hasta), listaUsuarios()]);
+  const [, resumen, usuarios] = await Promise.all([exigirUsuario(), resumenPeriodo(periodo.desde, periodo.hasta), listaUsuarios()]);
+  const calculo = await calcularReparto(periodo.desde, periodo.hasta, usuarios);
   const utilidad = resumen.ingresos - resumen.gastos;
   const de = (lista: { persona: number | null; total: number }[], persona: number | null) => lista.find((f) => f.persona === persona)?.total ?? 0;
 
   const socios = usuarios.map((u) => {
-    const corresponde = Math.round((utilidad * u.porcentaje) / 100);
+    // Considera los porcentajes propios de cada proyecto, ingreso o gasto
+    const corresponde = Math.round(calculo.corresponde.get(u.id) ?? 0);
     const recibio = de(resumen.porPersonaI, u.id);
     const pago = de(resumen.porPersonaG, u.id);
     return { ...u, corresponde, recibio, pago, diferencia: corresponde - (recibio - pago) };
@@ -87,15 +88,19 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
 
       <h2 className="mt-10 mb-1 text-lg font-medium tracking-tight capitalize">{periodo.titulo}</h2>
       <p className="mb-5 max-w-3xl text-sm leading-relaxed text-muted">
-        A cada socio le corresponde su porcentaje de la utilidad. Como algunos pagos llegan o salen de sus cuentas personales, abajo ves cuánto falta
-        para quedar parejos.
+        A cada socio le corresponde su porcentaje de cada ingreso y gasto: el general, o el propio del proyecto o del movimiento si lo tiene. Como
+        algunos pagos llegan o salen de sus cuentas personales, abajo ves cuánto falta para quedar parejos.
       </p>
 
       {/* Reparto visual de la utilidad */}
       {socios.length > 1 ? (
         <div className="mb-5 flex h-3 overflow-hidden rounded-full bg-line" aria-hidden="true">
           {socios.map((s) => (
-            <div key={s.id} className="barra h-full first:rounded-l-full last:rounded-r-full" style={{ width: `${s.porcentaje}%`, background: colorDe(s.nombre) }} />
+            <div
+              key={s.id}
+              className="barra h-full first:rounded-l-full last:rounded-r-full"
+              style={{ width: `${utilidad > 0 ? Math.max(0, (s.corresponde / utilidad) * 100) : s.porcentaje}%`, background: colorDe(s.nombre) }}
+            />
           ))}
         </div>
       ) : null}
@@ -109,7 +114,9 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                 <Avatar nombre={s.nombre} color={colorDe(s.nombre)} className="size-11 text-base" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{s.nombre}</p>
-                  <p className="text-xs text-muted">{s.porcentaje}% de la utilidad</p>
+                  <p className="text-xs text-muted">
+                    {utilidad !== 0 ? `${Math.round((s.corresponde / utilidad) * 100)}% de la utilidad del período` : `${s.porcentaje}% general`}
+                  </p>
                 </div>
               </div>
               <dl className="mt-5 space-y-2.5 text-sm">
@@ -141,6 +148,37 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
           quien tenga que entregar.
         </span>
       </p>
+
+      {calculo.porProyecto.length ? (
+        <section className={`${tarjeta} aparecer mt-10 p-5`}>
+          <h2 className="mb-1 font-medium">Por proyecto</h2>
+          <p className="mb-4 text-sm text-muted">Cuánto dejó cada proyecto en el período y cuánto le toca a cada uno.</p>
+          <ul className="divide-y divide-line">
+            {calculo.porProyecto.map((g) => (
+              <li key={g.id ?? "general"} className="py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  {g.id ? (
+                    <Link href={`/admin/proyectos/${g.id}`} className="font-medium hover:text-accent-soft">
+                      {g.nombre}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-muted">{g.nombre}</span>
+                  )}
+                  <span className={`tabular-nums ${g.utilidad < 0 ? "text-[#ff8fa3]" : ""}`}>{clp(g.utilidad)}</span>
+                </div>
+                <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+                  {usuarios.map((u) => (
+                    <span key={u.id}>
+                      {u.nombre.split(" ")[0]}: <span className="text-fg tabular-nums">{clp(g.partes.get(u.id) ?? 0)}</span>
+                    </span>
+                  ))}
+                  {g.personalizado ? <span className="text-accent-soft">reparto propio</span> : null}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {meses.length ? (
         <section className={`${tarjeta} aparecer mt-10 p-5`}>

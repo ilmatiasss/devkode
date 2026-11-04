@@ -4,7 +4,7 @@ import { BarrasMeses, Dona } from "@/components/admin/Graficos";
 import { Icono } from "@/components/admin/Icono";
 import { botonPrimario, botonSecundario, Encabezado, Etiqueta, Kpi, Progreso, Seccion, tarjeta, Vacio } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { enPesos, listaServicios, mensualEnPesos, resumenPeriodo, valorDolar } from "@/lib/admin/consultas";
+import { enPesos, estadoMantencion, listaMantenciones, listaServicios, mensualEnPesos, resumenPeriodo, valorDolar } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { clp, diasHasta, dinero, fecha, hoy, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
 import { colorDeCategoria, estadosProyecto, type EstadoProyecto, etiquetaCategoria, tonoEstado } from "@/lib/admin/opciones";
@@ -22,19 +22,20 @@ function saludo() {
 }
 
 export default async function Resumen() {
-  const usuario = await exigirUsuario();
   const sql = db();
   const mes = mesActual();
   const desde6 = `${moverMes(mes, -5)}-01`;
 
-  const [periodo, anterior, servicios, dolar, proyectos, movimientos, serie, categorias] = await Promise.all([
+  const [usuario, mantenciones, periodo, anterior, servicios, dolar, proyectos, movimientos, serie, categorias] = await Promise.all([
+    exigirUsuario(),
+    listaMantenciones(),
     resumenPeriodo(`${mes}-01`, `${moverMes(mes, 1)}-01`),
     resumenPeriodo(`${moverMes(mes, -1)}-01`, `${mes}-01`),
     listaServicios(),
     valorDolar(),
     sql<ProyectoActivo[]>`
       select p.id, p.nombre, c.nombre as cliente, p.estado, p.entrega, p.monto,
-        coalesce((select sum(i.monto) from ingresos i where i.proyecto_id = p.id), 0)::bigint as cobrado
+        coalesce((select sum(i.monto) from ingresos i where i.proyecto_id = p.id and i.mant_mes is null), 0)::bigint as cobrado
       from proyectos p left join clientes c on c.id = p.cliente_id
       where p.estado in ('en_curso', 'pausado', 'propuesta')
       order by array_position(array['en_curso', 'propuesta', 'pausado'], p.estado), p.entrega nulls last, p.nombre
@@ -61,6 +62,11 @@ export default async function Resumen() {
   const costoFijo = activos.reduce((suma, s) => suma + mensualEnPesos(s, dolar), 0);
   const proximos = activos.filter((s) => s.proximo_cobro && diasHasta(s.proximo_cobro) <= 30).slice(0, 5);
   const porCobrar = proyectos.filter((p) => p.estado !== "propuesta").reduce((s, p) => s + Math.max(0, p.monto - p.cobrado), 0);
+  const diaHoy = hoy();
+  const mants = mantenciones.map((m) => ({ ...m, e: estadoMantencion(m, diaHoy) }));
+  const recurrente = mants.reduce((s, m) => s + m.mant_monto, 0);
+  const mantCobrado = mants.filter((m) => m.e.mesActualPagado).reduce((s, m) => s + m.mant_monto, 0);
+  const mantPendientes = mants.filter((m) => m.e.pendientes.length > 0 || !m.e.mesActualPagado);
   const fechaLarga = new Intl.DateTimeFormat("es-CL", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Santiago" }).format(new Date());
 
   return (
@@ -84,7 +90,7 @@ export default async function Resumen() {
         <Kpi etiqueta="Ingresos del mes" valor={clp(periodo.ingresos)} icono="ingresos" variacion={variacion(periodo.ingresos, anterior.ingresos)} detalle="vs mes anterior" />
         <Kpi etiqueta="Gastos del mes" valor={clp(periodo.gastos)} icono="gastos" variacion={variacion(periodo.gastos, anterior.gastos)} invertir detalle="vs mes anterior" />
         <Kpi etiqueta="Utilidad del mes" valor={clp(utilidad)} icono="billetera" tono={utilidad >= 0 ? "bien" : "mal"} detalle={margen !== null ? `Margen ${margen}%` : undefined} />
-        <Kpi etiqueta="Por cobrar" valor={clp(porCobrar)} icono="reloj" tono="acento" detalle="en proyectos activos" />
+        <Kpi etiqueta="Por cobrar" valor={clp(porCobrar)} icono="reloj" tono="acento" detalle={recurrente ? `+ ${clp(recurrente)}/mes en mantenciones` : "en proyectos activos"} />
       </div>
 
       <div className="mt-4 grid gap-4 md:mt-5 lg:grid-cols-3">
@@ -173,6 +179,46 @@ export default async function Resumen() {
           )}
         </Seccion>
 
+        <div className="space-y-10">
+        {mants.length ? (
+          <Seccion
+            titulo="Mantenciones del mes"
+            accion={
+              <Link href="/admin/mantenciones" className="text-sm text-muted hover:text-fg">
+                Ver →
+              </Link>
+            }
+          >
+            <div className={`${tarjeta} p-4`}>
+              <div className="mb-2 flex items-baseline justify-between text-xs text-muted">
+                <span>
+                  <span className="font-display text-lg font-medium text-fg">{clp(mantCobrado)}</span> de {clp(recurrente)}
+                </span>
+                <span>{recurrente ? Math.round((mantCobrado / recurrente) * 100) : 0}%</span>
+              </div>
+              <Progreso valor={recurrente ? (mantCobrado / recurrente) * 100 : 0} color="#7ee2a0" etiqueta="Mantenciones cobradas este mes" />
+              {mantPendientes.length ? (
+                <ul className="mt-3 space-y-1">
+                  {mantPendientes.slice(0, 4).map((m) => {
+                    const atrasadas = m.e.pendientes.filter((x) => x < diaHoy.slice(0, 7)).length;
+                    return (
+                      <li key={m.id}>
+                        <Link href={`/admin/proyectos/${m.id}`} className="flex items-center justify-between gap-2 rounded-lg px-1 py-1.5 text-sm hover:bg-white/[0.03]">
+                          <span className="truncate">{m.cliente ?? m.nombre}</span>
+                          <Etiqueta tono={atrasadas ? "mal" : m.e.mesActualVencido ? "aviso" : "neutro"}>
+                            {atrasadas ? `${atrasadas} atrasada${atrasadas === 1 ? "" : "s"}` : m.e.mesActualVencido ? "Por cobrar" : `día ${m.mant_dia}`}
+                          </Etiqueta>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-[#7ee2a0]">Todas cobradas este mes.</p>
+              )}
+            </div>
+          </Seccion>
+        ) : null}
         <Seccion
           titulo="Próximos cobros"
           accion={<span className="text-xs text-muted">Fijo: {clp(costoFijo)}/mes</span>}
@@ -208,6 +254,7 @@ export default async function Resumen() {
             </Vacio>
           )}
         </Seccion>
+        </div>
       </div>
 
       <Seccion titulo="Últimos movimientos" className="mt-10">

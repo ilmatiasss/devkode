@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
 import { Icono } from "@/components/admin/Icono";
 import { Avatar, BarraGuardar, botonPeligro, Campo, colorDe, Encabezado, entrada, Etiqueta, tarjeta, ZonaPeligro } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { db } from "@/lib/admin/db";
 import { clp } from "@/lib/admin/formato";
 import { estadosProyecto, type EstadoProyecto, tonoEstado } from "@/lib/admin/opciones";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Cliente" };
 type Cliente = { id: number; nombre: string; contacto: string | null; email: string | null; telefono: string | null; rut: string | null; notas: string | null };
 
 export default async function FichaCliente({ params }: { params: Promise<{ id: string }> }) {
-  await exigirUsuario();
+  const sesion = sesionEnParalelo();
   const { id } = await params;
   const nuevo = id === "nuevo";
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
@@ -28,12 +28,13 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
     : await sql<{ id: number; nombre: string; estado: EstadoProyecto; monto: number }[]>`select id, nombre, estado, monto from proyectos where cliente_id = ${Number(id)} order by creado desc`;
   const opcional = <span className="font-normal text-muted"> (opcional)</span>;
 
+  await sesion;
   return (
     <>
       <Encabezado volver={{ href: "/admin/clientes", texto: "Clientes" }} titulo={cliente?.nombre ?? "Nuevo cliente"} descripcion={cliente?.contacto ?? "Los campos marcados como opcionales se pueden completar después."} />
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-        <form action={guardarCliente} className={`${tarjeta} aparecer grid gap-5 p-5 sm:grid-cols-2 md:p-6`}>
+        <form action={guardarCliente} className={`${tarjeta} aparecer grid min-w-0 gap-5 p-5 sm:grid-cols-2 md:p-6`}>
           <div className="flex items-center gap-3 sm:col-span-2">
             <Avatar nombre={cliente?.nombre ?? "?"} color={colorDe(cliente?.nombre ?? "?")} className="size-11 text-base" />
             <h2 className="font-medium">{cliente ? "Editar datos" : "Datos del cliente"}</h2>

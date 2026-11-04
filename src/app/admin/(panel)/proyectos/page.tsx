@@ -9,17 +9,16 @@ import { claves, estadosProyecto, type EstadoProyecto, tonoEstado } from "@/lib/
 
 export const metadata: Metadata = { title: "Proyectos" };
 
-type Fila = { id: number; nombre: string; cliente: string | null; estado: EstadoProyecto; inicio: string | null; entrega: string | null; monto: number; cobrado: number; gastado: number };
+type Fila = { id: number; nombre: string; cliente: string | null; estado: EstadoProyecto; inicio: string | null; entrega: string | null; monto: number; cobrado: number; gastado: number; mant_activa: boolean; mant_monto: number };
 
 export default async function Proyectos({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
-  await exigirUsuario();
   const q = await searchParams;
-  const proyectos = await db()<Fila[]>`
-    select p.id, p.nombre, c.nombre as cliente, p.estado, p.inicio, p.entrega, p.monto,
-      coalesce((select sum(monto) from ingresos where proyecto_id = p.id), 0)::bigint as cobrado,
+  const [, proyectos] = await Promise.all([exigirUsuario(), db()<Fila[]>`
+    select p.id, p.nombre, c.nombre as cliente, p.estado, p.inicio, p.entrega, p.monto, p.mant_activa, p.mant_monto,
+      coalesce((select sum(monto) from ingresos where proyecto_id = p.id and mant_mes is null), 0)::bigint as cobrado,
       coalesce((select sum(monto) from gastos where proyecto_id = p.id), 0)::bigint as gastado
     from proyectos p left join clientes c on c.id = p.cliente_id
-    order by array_position(array['en_curso', 'propuesta', 'pausado', 'terminado', 'cancelado'], p.estado), p.entrega nulls last, p.nombre`;
+    order by array_position(array['en_curso', 'propuesta', 'pausado', 'terminado', 'cancelado'], p.estado), p.entrega nulls last, p.nombre`]);
 
   const filtro = q.estado && q.estado in estadosProyecto ? (q.estado as EstadoProyecto) : "activos";
   const activos = proyectos.filter((p) => ["en_curso", "propuesta", "pausado"].includes(p.estado));
@@ -94,6 +93,11 @@ export default async function Proyectos({ searchParams }: { searchParams: Promis
                       <span className={`flex items-center gap-1.5 ${abierto && dias < 0 ? "text-[#ff8fa3]" : abierto && dias <= 7 ? "text-[#f5c96b]" : ""}`}>
                         <Icono nombre="calendario" className="size-3.5" />
                         {abierto ? (dias < 0 ? `Atrasado ${-dias} d` : dias === 0 ? "Entrega hoy" : `Entrega en ${dias} d`) : fecha(p.entrega)}
+                      </span>
+                    ) : null}
+                    {p.mant_activa ? (
+                      <span className="flex items-center gap-1.5 text-accent-soft">
+                        <Icono nombre="repetir" className="size-3.5" /> {clp(p.mant_monto)}/mes
                       </span>
                     ) : null}
                     {p.gastado > 0 ? (

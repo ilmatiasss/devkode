@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
+import { CampoReparto } from "@/components/admin/CampoReparto";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { Selector } from "@/components/admin/Selector";
 import { BarraGuardar, botonPeligro, Campo, Encabezado, enlace, entrada, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { listaProyectos, listaUsuarios } from "@/lib/admin/consultas";
+import { listaProyectos, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { hoy } from "@/lib/admin/formato";
 import { categoriasGasto, claves, colorDeCategoria } from "@/lib/admin/opciones";
@@ -15,19 +16,33 @@ import { eliminarGasto, guardarGasto } from "../../acciones";
 
 export const metadata: Metadata = { title: "Gasto" };
 
-type Gasto = { id: number; fecha: string; descripcion: string; categoria: string; monto: number; pagado_por: number | null; proyecto_id: number | null; servicio_id: number | null; notas: string | null };
+type Gasto = {
+  id: number;
+  fecha: string;
+  descripcion: string;
+  categoria: string;
+  monto: number;
+  pagado_por: number | null;
+  proyecto_id: number | null;
+  servicio_id: number | null;
+  proveedor: string | null;
+  documento: string | null;
+  notas: string | null;
+  reparto: Reparto;
+};
 
 export default async function FichaGasto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
-  const usuario = await exigirUsuario();
   const { id } = await params;
   const q = await searchParams;
   const nuevo = id === "nuevo";
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
 
-  const [[gasto], proyectos, usuarios] = await Promise.all([
+  const [usuario, [gasto], proyectos, usuarios, servicios] = await Promise.all([
+    exigirUsuario(),
     nuevo ? Promise.resolve([undefined]) : db()<Gasto[]>`select * from gastos where id = ${Number(id)}`,
     listaProyectos(),
     listaUsuarios(),
+    db()<{ id: number; nombre: string; activo: boolean }[]>`select id, nombre, activo from servicios order by activo desc, nombre`,
   ]);
   if (!nuevo && !gasto) notFound();
   const proyectoInicial = gasto?.proyecto_id ?? (q.proyecto && /^\d+$/.test(q.proyecto) ? Number(q.proyecto) : "");
@@ -59,8 +74,14 @@ export default async function FichaGasto({ params, searchParams }: { params: Pro
           </p>
           <InputMonto name="monto" required grande ariaLabel="Monto del gasto" defaultValue={gasto?.monto ?? ""} />
         </div>
-        <Campo etiqueta="Descripción" className="sm:col-span-2">
-          <input name="descripcion" required maxLength={200} placeholder="Ej: Dominio fruterra.cl" defaultValue={gasto?.descripcion} className={entrada} />
+        <Campo etiqueta="¿Qué se compró o pagó?" className="sm:col-span-2">
+          <input name="descripcion" required maxLength={200} placeholder="Ej: Dominio fruterra.cl, notebook, publicidad de noviembre" defaultValue={gasto?.descripcion} className={entrada} />
+        </Campo>
+        <Campo etiqueta="¿Dónde? (proveedor o tienda)">
+          <input name="proveedor" maxLength={120} placeholder="Ej: NIC Chile, PC Factory, Meta" defaultValue={gasto?.proveedor ?? ""} className={entrada} />
+        </Campo>
+        <Campo etiqueta="N° de boleta o factura">
+          <input name="documento" maxLength={60} placeholder="Opcional" defaultValue={gasto?.documento ?? ""} className={entrada} />
         </Campo>
         <div className="sm:col-span-2">
           <Selector
@@ -72,6 +93,17 @@ export default async function FichaGasto({ params, searchParams }: { params: Pro
         </div>
         <Campo etiqueta="Fecha">
           <input name="fecha" type="date" required defaultValue={gasto?.fecha ?? hoy()} className={entrada} />
+        </Campo>
+        <Campo etiqueta="¿Es pago de un servicio contratado?">
+          <select name="servicio_id" defaultValue={gasto?.servicio_id ?? ""} className={entrada}>
+            <option value="">No</option>
+            {servicios.map((sv) => (
+              <option key={sv.id} value={sv.id}>
+                {sv.nombre}
+                {sv.activo ? "" : " (inactivo)"}
+              </option>
+            ))}
+          </select>
         </Campo>
         <Campo etiqueta="Proyecto (opcional)">
           <select name="proyecto_id" defaultValue={proyectoInicial} className={entrada}>
@@ -92,8 +124,11 @@ export default async function FichaGasto({ params, searchParams }: { params: Pro
           />
           <p className="mt-2 text-xs text-muted">Si lo pagó uno de ustedes de su bolsillo, se le devuelve en el reparto.</p>
         </div>
+        <div className="sm:col-span-2">
+          <CampoReparto socios={usuarios} inicial={gasto?.reparto ?? null} textoBase="Como el proyecto o el general" etiqueta="Cómo se reparte este gasto" />
+        </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
-          <textarea name="notas" rows={3} maxLength={2000} placeholder="Número de boleta, enlace a la factura…" defaultValue={gasto?.notas ?? ""} className={entrada} />
+          <textarea name="notas" rows={3} maxLength={2000} placeholder="Enlace a la factura, garantía, detalles…" defaultValue={gasto?.notas ?? ""} className={entrada} />
         </Campo>
         <BarraGuardar cancelar="/admin/gastos" texto={gasto ? "Guardar cambios" : "Registrar gasto"} />
       </form>

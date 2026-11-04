@@ -6,7 +6,7 @@ import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { Selector } from "@/components/admin/Selector";
 import { BarraGuardar, botonPeligro, botonPrimario, Campo, Encabezado, entrada, Etiqueta, tarjeta, ZonaPeligro } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { enPesos, listaProyectos, listaUsuarios, type Servicio, valorDolar } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { clp, fecha, hoy } from "@/lib/admin/formato";
@@ -16,7 +16,7 @@ import { eliminarServicio, guardarServicio, registrarPagoServicio } from "../../
 export const metadata: Metadata = { title: "Servicio" };
 
 export default async function FichaServicio({ params }: { params: Promise<{ id: string }> }) {
-  await exigirUsuario();
+  const sesion = sesionEnParalelo();
   const { id } = await params;
   const nuevo = id === "nuevo";
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
@@ -33,6 +33,7 @@ export default async function FichaServicio({ params }: { params: Promise<{ id: 
   ]);
   if (!nuevo && !servicio) notFound();
 
+  await sesion;
   return (
     <>
       <Encabezado
@@ -43,7 +44,7 @@ export default async function FichaServicio({ params }: { params: Promise<{ id: 
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
-        <form action={guardarServicio} className={`${tarjeta} aparecer grid gap-5 p-5 sm:grid-cols-2 md:p-6`}>
+        <form action={guardarServicio} className={`${tarjeta} aparecer grid min-w-0 gap-5 p-5 sm:grid-cols-2 md:p-6`}>
           <h2 className="flex items-center gap-2 font-medium sm:col-span-2">
             <Icono nombre="lapiz" className="size-4 text-accent-soft" /> {servicio ? "Editar servicio" : "Datos del servicio"}
           </h2>

@@ -1,8 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import nodemailer from "nodemailer";
-import { enPesos, valorDolar } from "@/lib/admin/consultas";
-import { db, dbConfigurada } from "@/lib/admin/db";
-import { clp, dinero, fecha, hoy } from "@/lib/admin/formato";
+import { enPesos, estadoMantencion, listaMantenciones, valorDolar } from "@/lib/admin/consultas";
+import { asegurarEsquema, db, dbConfigurada } from "@/lib/admin/db";
+import { clp, dinero, fecha, hoy, nombreMes } from "@/lib/admin/formato";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,8 +22,10 @@ export async function GET(request: Request) {
   if (secreto.length < 16 || !igual(recibido, `Bearer ${secreto}`)) return Response.json({ error: "no_autorizado" }, { status: 401 });
   if (!dbConfigurada || !process.env.SMTP_USER || !process.env.SMTP_PASS) return Response.json({ error: "no_configurado" }, { status: 503 });
 
+  await asegurarEsquema();
   const sql = db();
   const dia = hoy();
+  const mesHoy = dia.slice(0, 7);
   const pendientes = await sql<Pendiente[]>`
     select s.id, s.nombre, s.proveedor, s.costo, s.moneda, s.proximo_cobro, (s.proximo_cobro - ${dia}::date) as dias, u.nombre as quien
     from servicios s left join usuarios u on u.id = s.pagado_por
@@ -31,7 +33,19 @@ export async function GET(request: Request) {
       and s.proximo_cobro - ${dia}::date between 0 and s.avisar_dias
       and not exists (select 1 from avisos_enviados a where a.servicio_id = s.id and a.fecha_cobro = s.proximo_cobro)
     order by s.proximo_cobro`;
-  if (!pendientes.length) return Response.json({ enviados: 0 });
+
+  // Mantenciones que toca cobrar a clientes: desde 2 días antes del día de cobro, una vez por mes
+  const [mantenciones, yaAvisadas] = await Promise.all([
+    listaMantenciones(),
+    sql<{ proyecto_id: number }[]>`select proyecto_id from avisos_mantencion where mes = ${mesHoy}`,
+  ]);
+  const avisadas = new Set(yaAvisadas.map((a) => a.proyecto_id));
+  const porCobrar = mantenciones.filter((m) => {
+    const e = estadoMantencion(m, dia);
+    return !e.mesActualPagado && Number(dia.slice(8, 10)) >= m.mant_dia - 2 && !avisadas.has(m.id) && (m.mant_desde ?? m.inicio ?? dia).slice(0, 7) <= mesHoy;
+  });
+
+  if (!pendientes.length && !porCobrar.length) return Response.json({ enviados: 0 });
 
   const [destinatarios, dolar] = await Promise.all([sql<{ email: string }[]>`select email from usuarios`, valorDolar()]);
   const lineas = pendientes.map((s) => {
@@ -39,6 +53,9 @@ export async function GET(request: Request) {
     const monto = s.moneda === "USD" ? `${dinero(s.costo, "USD")} (≈ ${clp(enPesos(s, dolar))})` : clp(s.costo);
     return `• ${s.nombre}${s.proveedor ? ` (${s.proveedor})` : ""}: ${monto}, ${cuando} (${fecha(s.proximo_cobro)}). Paga: ${s.quien ?? "cuenta de la empresa"}.`;
   });
+  const lineasMant = porCobrar.map(
+    (m) => `• ${m.cliente ?? m.nombre} (${m.nombre}): ${clp(m.mant_monto)}, se cobra el día ${m.mant_dia}${m.telefono ? `. Teléfono: ${m.telefono}` : ""}.`,
+  );
 
   const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? "mail.spacemail.com",
@@ -48,22 +65,32 @@ export async function GET(request: Request) {
     connectionTimeout: 10_000,
     socketTimeout: 15_000,
   });
+  const asunto = [
+    pendientes.length ? (pendientes.length === 1 ? `Se viene un cobro: ${pendientes[0].nombre}` : `Se vienen ${pendientes.length} cobros de servicios`) : null,
+    porCobrar.length ? `${porCobrar.length} mantención${porCobrar.length === 1 ? "" : "es"} por cobrar` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   await transporter.sendMail({
     from: { name: "Panel DevKode", address: process.env.SMTP_USER },
     to: destinatarios.map((d) => d.email),
-    subject: pendientes.length === 1 ? `Se viene un cobro: ${pendientes[0].nombre}` : `Se vienen ${pendientes.length} cobros de servicios`,
+    subject: asunto,
     text: [
       "Hola,",
-      "",
-      "Estos servicios se cobran pronto:",
-      "",
-      ...lineas,
-      "",
-      "Cuando se pague, regístralo en el panel (Servicios → Registrar pago) para que quede como gasto.",
-      "https://devkode.cl/admin/servicios",
+      ...(pendientes.length
+        ? ["", "Estos servicios se cobran pronto:", "", ...lineas, "", "Cuando se pague, regístralo en Servicios → Registrar pago.", "https://devkode.cl/admin/servicios"]
+        : []),
+      ...(porCobrar.length
+        ? ["", `Mantenciones de ${nombreMes(mesHoy)} que toca cobrar a clientes:`, "", ...lineasMant, "", "Cuando paguen, regístralo en Mantenciones.", "https://devkode.cl/admin/mantenciones"]
+        : []),
     ].join("\n"),
   });
 
-  await sql`insert into avisos_enviados ${sql(pendientes.map((s) => ({ servicio_id: s.id, fecha_cobro: s.proximo_cobro })))} on conflict do nothing`;
-  return Response.json({ enviados: pendientes.length });
+  if (pendientes.length) {
+    await sql`insert into avisos_enviados ${sql(pendientes.map((s) => ({ servicio_id: s.id, fecha_cobro: s.proximo_cobro })))} on conflict do nothing`;
+  }
+  if (porCobrar.length) {
+    await sql`insert into avisos_mantencion ${sql(porCobrar.map((m) => ({ proyecto_id: m.id, mes: mesHoy })))} on conflict do nothing`;
+  }
+  return Response.json({ enviados: pendientes.length + porCobrar.length });
 }

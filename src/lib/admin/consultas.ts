@@ -70,3 +70,102 @@ export async function resumenPeriodo(desde: string | null, hasta: string | null)
   ]);
   return { ...totales, porPersonaI, porPersonaG };
 }
+
+// ---------------- Reparto entre socios ----------------
+
+// {"<id usuario>": porcentaje}. Null = usar el reparto del proyecto o el general
+export type Reparto = Record<string, number> | null;
+
+export const repartoValido = (r: unknown): r is Record<string, number> =>
+  typeof r === "object" && r !== null && Object.values(r).reduce<number>((s, v) => s + Number(v), 0) === 100;
+
+// Porcentaje que le toca a un socio en un movimiento: el del movimiento, si no el del proyecto,
+// si no el porcentaje general del socio
+export function porcentajeDe(usuario: Persona, propio: Reparto, delProyecto: Reparto) {
+  if (repartoValido(propio)) return Number(propio[String(usuario.id)] ?? 0);
+  if (repartoValido(delProyecto)) return Number(delProyecto[String(usuario.id)] ?? 0);
+  return usuario.porcentaje;
+}
+
+type MovReparto = { tipo: "ingreso" | "gasto"; monto: number; reparto: Reparto; reparto_proyecto: Reparto; proyecto_id: number | null; proyecto: string | null };
+
+// Cuánto le corresponde a cada socio en un período, y el detalle por proyecto
+export async function calcularReparto(desde: string | null, hasta: string | null, usuarios: Persona[]) {
+  const sql = db();
+  const filtro = desde && hasta ? sql`where m.fecha >= ${desde} and m.fecha < ${hasta}` : sql``;
+  const movs = await sql<MovReparto[]>`
+    select 'ingreso' as tipo, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto
+    from ingresos m left join proyectos p on p.id = m.proyecto_id ${filtro}
+    union all
+    select 'gasto' as tipo, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto
+    from gastos m left join proyectos p on p.id = m.proyecto_id ${filtro}`;
+
+  const corresponde = new Map(usuarios.map((u) => [u.id, 0]));
+  const porProyecto = new Map<string, { nombre: string; id: number | null; utilidad: number; partes: Map<number, number>; personalizado: boolean }>();
+  for (const m of movs) {
+    const signo = m.tipo === "ingreso" ? 1 : -1;
+    const clave = m.proyecto_id === null ? "general" : String(m.proyecto_id);
+    const grupo = porProyecto.get(clave) ?? {
+      nombre: m.proyecto ?? "Generales (sin proyecto)",
+      id: m.proyecto_id,
+      utilidad: 0,
+      partes: new Map(usuarios.map((u) => [u.id, 0])),
+      personalizado: false,
+    };
+    grupo.utilidad += signo * m.monto;
+    if (repartoValido(m.reparto) || repartoValido(m.reparto_proyecto)) grupo.personalizado = true;
+    for (const u of usuarios) {
+      const parte = (signo * m.monto * porcentajeDe(u, m.reparto, m.reparto_proyecto)) / 100;
+      corresponde.set(u.id, corresponde.get(u.id)! + parte);
+      grupo.partes.set(u.id, grupo.partes.get(u.id)! + parte);
+    }
+    porProyecto.set(clave, grupo);
+  }
+  return {
+    corresponde,
+    porProyecto: [...porProyecto.values()].sort((a, b) => (a.id === null ? 1 : b.id === null ? -1 : b.utilidad - a.utilidad)),
+  };
+}
+
+// ---------------- Mantención mensual ----------------
+
+export type ProyectoMantencion = {
+  id: number;
+  nombre: string;
+  cliente: string | null;
+  telefono: string | null;
+  mant_monto: number;
+  mant_dia: number;
+  mant_desde: string | null;
+  inicio: string | null;
+  estado: string;
+  pagados: string[]; // meses "AAAA-MM" ya cobrados
+};
+
+export const listaMantenciones = () =>
+  db()<ProyectoMantencion[]>`
+    select p.id, p.nombre, c.nombre as cliente, c.telefono, p.mant_monto, p.mant_dia, p.mant_desde, p.inicio, p.estado,
+      coalesce((select array_agg(i.mant_mes order by i.mant_mes) from ingresos i where i.proyecto_id = p.id and i.mant_mes is not null), '{}') as pagados
+    from proyectos p left join clientes c on c.id = p.cliente_id
+    where p.mant_activa
+    order by p.nombre`;
+
+// Meses que ya se debieron cobrar (desde el inicio de la mantención hasta hoy, según el día de cobro)
+// y los que faltan por pagar
+export function estadoMantencion(p: Pick<ProyectoMantencion, "mant_desde" | "inicio" | "mant_dia" | "pagados">, hoyStr: string) {
+  const mesHoy = hoyStr.slice(0, 7);
+  const desde = (p.mant_desde ?? p.inicio ?? hoyStr).slice(0, 7);
+  const vencidos: string[] = [];
+  for (let m = desde; m <= mesHoy && vencidos.length < 120; ) {
+    if (m < mesHoy || Number(hoyStr.slice(8, 10)) >= p.mant_dia) vencidos.push(m);
+    const [a, mm] = m.split("-").map(Number);
+    m = mm === 12 ? `${a + 1}-01` : `${a}-${String(mm + 1).padStart(2, "0")}`;
+  }
+  const pagados = new Set(p.pagados);
+  const pendientes = vencidos.filter((m) => !pagados.has(m));
+  const mesActualPagado = pagados.has(mesHoy);
+  const mesActualVencido = vencidos.includes(mesHoy);
+  // Próximo mes a cobrar: el pendiente más antiguo, o el actual si aún no vence
+  const siguiente = pendientes[0] ?? (mesActualPagado ? null : mesHoy >= desde ? mesHoy : desde);
+  return { pendientes, mesActualPagado, mesActualVencido, siguiente };
+}

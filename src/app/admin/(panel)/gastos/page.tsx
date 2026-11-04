@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Icono } from "@/components/admin/Icono";
 import { ListaMovimientos } from "@/components/admin/Movimientos";
 import { botonPrimario, Encabezado, Kpi, SelectorMes, tarjeta, Vacio } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { db } from "@/lib/admin/db";
 import { clp, esMes, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
 import { colorDeCategoria, etiquetaCategoria } from "@/lib/admin/opciones";
@@ -13,13 +13,13 @@ export const metadata: Metadata = { title: "Gastos" };
 type Fila = { id: number; fecha: string; descripcion: string; categoria: string; monto: number; detalle: string | null; persona: string | null };
 
 export default async function Gastos({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
-  await exigirUsuario();
+  const sesion = sesionEnParalelo();
   const q = await searchParams;
   const mes = esMes(q.mes) ? q.mes : mesActual();
   const sql = db();
   const [filas, [anterior]] = await Promise.all([
     sql<Fila[]>`
-      select g.id, g.fecha, g.descripcion, g.categoria, g.monto, p.nombre as detalle, u.nombre as persona
+      select g.id, g.fecha, g.descripcion, g.categoria, g.monto, concat_ws(' · ', g.proveedor, p.nombre) as detalle, u.nombre as persona
       from gastos g left join proyectos p on p.id = g.proyecto_id left join usuarios u on u.id = g.pagado_por
       where g.fecha >= ${`${mes}-01`} and g.fecha < ${`${moverMes(mes, 1)}-01`}
       order by g.fecha desc, g.id desc`,
@@ -31,6 +31,7 @@ export default async function Gastos({ searchParams }: { searchParams: Promise<{
   );
   const deBolsillo = filas.filter((f) => f.persona).reduce((s, f) => s + f.monto, 0);
 
+  await sesion;
   return (
     <>
       <Encabezado

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Icono } from "@/components/admin/Icono";
 import { ListaMovimientos } from "@/components/admin/Movimientos";
 import { botonPrimario, Encabezado, Kpi, SelectorMes, Vacio } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { db } from "@/lib/admin/db";
 import { clp, esMes, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Ingresos" };
 type Fila = { id: number; fecha: string; descripcion: string; monto: number; detalle: string | null; persona: string | null };
 
 export default async function Ingresos({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
-  await exigirUsuario();
+  const sesion = sesionEnParalelo();
   const q = await searchParams;
   const mes = esMes(q.mes) ? q.mes : mesActual();
   const sql = db();
@@ -27,6 +27,7 @@ export default async function Ingresos({ searchParams }: { searchParams: Promise
   const total = filas.reduce((s, f) => s + f.monto, 0);
   const enEmpresa = filas.filter((f) => !f.persona).reduce((s, f) => s + f.monto, 0);
 
+  await sesion;
   return (
     <>
       <Encabezado

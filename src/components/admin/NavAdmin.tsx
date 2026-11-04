@@ -15,6 +15,7 @@ const grupos: { titulo: string; items: Item[] }[] = [
     titulo: "Trabajo",
     items: [
       { href: "/admin/proyectos", etiqueta: "Proyectos", icono: "proyectos" },
+      { href: "/admin/mantenciones", etiqueta: "Mantenciones", icono: "repetir" },
       { href: "/admin/clientes", etiqueta: "Clientes", icono: "clientes" },
     ],
   },

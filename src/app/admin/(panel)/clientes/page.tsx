@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icono } from "@/components/admin/Icono";
 import { Avatar, botonPrimario, colorDe, Encabezado, tarjeta, Vacio } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { db } from "@/lib/admin/db";
 import { clp } from "@/lib/admin/formato";
 
@@ -21,7 +21,7 @@ function whatsapp(telefono: string | null) {
 const accion = "grid size-9 place-items-center rounded-xl border border-line text-muted transition-colors hover:border-accent/50 hover:text-fg";
 
 export default async function Clientes() {
-  await exigirUsuario();
+  const sesion = sesionEnParalelo();
   const clientes = await db()<Fila[]>`
     select c.id, c.nombre, c.contacto, c.email, c.telefono,
       (select count(*) from proyectos p where p.cliente_id = c.id)::bigint as proyectos,
@@ -29,6 +29,7 @@ export default async function Clientes() {
       coalesce((select sum(i.monto) from ingresos i join proyectos p on p.id = i.proyecto_id where p.cliente_id = c.id), 0)::bigint as facturado
     from clientes c order by c.nombre`;
 
+  await sesion;
   return (
     <>
       <Encabezado

@@ -1,12 +1,43 @@
 import type { Metadata } from "next";
 import { Icono, type NombreIcono } from "@/components/admin/Icono";
 import { botonPrimario, botonSecundario, Campo, Encabezado, entrada, tarjeta } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { listaUsuarios, valorDolar } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { cambiarClave, cerrarDemasSesiones, guardarAjustes } from "../acciones";
 
 export const metadata: Metadata = { title: "Ajustes" };
+
+// Región de Neon (sale del nombre del servidor de la base) y la región de Vercel que le queda más cerca
+const regionesNeon: Record<string, { nombre: string; vercel: string }> = {
+  "us-east-1": { nombre: "Virginia (EE. UU.)", vercel: "iad1" },
+  "us-east-2": { nombre: "Ohio (EE. UU.)", vercel: "cle1" },
+  "us-west-2": { nombre: "Oregón (EE. UU.)", vercel: "pdx1" },
+  "eu-central-1": { nombre: "Fráncfort", vercel: "fra1" },
+  "eu-west-2": { nombre: "Londres", vercel: "lhr1" },
+  "ap-southeast-1": { nombre: "Singapur", vercel: "sin1" },
+  "ap-southeast-2": { nombre: "Sídney", vercel: "syd1" },
+  "sa-east-1": { nombre: "São Paulo", vercel: "gru1" },
+};
+
+// Mide cuánto tarda una consulta mínima a la base desde el servidor (la mejor de tres)
+async function medirBase() {
+  const tiempos: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const t = performance.now();
+    await db()`select 1`;
+    tiempos.push(performance.now() - t);
+  }
+  const host = (() => {
+    try {
+      return new URL(process.env.DATABASE_URL ?? "").hostname;
+    } catch {
+      return "";
+    }
+  })();
+  const region = Object.keys(regionesNeon).find((r) => host.includes(`.${r}.`)) ?? null;
+  return { ms: Math.round(Math.min(...tiempos)), region, vercel: process.env.VERCEL_REGION ?? null };
+}
 
 function Bloque({ titulo, descripcion, icono, children }: { titulo: string; descripcion?: string; icono: NombreIcono; children: React.ReactNode }) {
   return (
@@ -26,11 +57,12 @@ function Bloque({ titulo, descripcion, icono, children }: { titulo: string; desc
 }
 
 export default async function Ajustes() {
-  const usuario = await exigirUsuario();
-  const [usuarios, dolar, [{ sesiones }]] = await Promise.all([
+  const usuario = await sesionEnParalelo();
+  const [usuarios, dolar, [{ sesiones }], rendimiento] = await Promise.all([
     listaUsuarios(),
     valorDolar(),
     db()<{ sesiones: number }[]>`select count(*)::bigint as sesiones from sesiones where usuario_id = ${usuario.id} and expira > now()`,
+    medirBase(),
   ]);
   const otros = usuarios.filter((u) => u.id !== usuario.id);
   const correoListo = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
@@ -117,6 +149,31 @@ export default async function Ajustes() {
               Cerrar las demás sesiones
             </button>
           </form>
+        </Bloque>
+
+        <Bloque icono="pulso" titulo="Rendimiento" descripcion="Cuánto tarda el panel en hablar con la base de datos.">
+          <dl className="grid grid-cols-3 gap-3 text-sm">
+            <div className="rounded-xl bg-bg/50 p-3">
+              <dt className="text-xs text-muted">Por consulta</dt>
+              <dd className={`mt-1 font-display text-lg ${rendimiento.ms > 60 ? "text-[#f5c96b]" : "text-[#7ee2a0]"}`}>{rendimiento.ms} ms</dd>
+            </div>
+            <div className="rounded-xl bg-bg/50 p-3">
+              <dt className="text-xs text-muted">Base (Neon)</dt>
+              <dd className="mt-1">{rendimiento.region ? (regionesNeon[rendimiento.region]?.nombre ?? rendimiento.region) : "—"}</dd>
+            </div>
+            <div className="rounded-xl bg-bg/50 p-3">
+              <dt className="text-xs text-muted">Servidor (Vercel)</dt>
+              <dd className="mt-1">{rendimiento.vercel ?? "—"}</dd>
+            </div>
+          </dl>
+          {rendimiento.region && rendimiento.vercel && regionesNeon[rendimiento.region] && !rendimiento.vercel.startsWith(regionesNeon[rendimiento.region].vercel) ? (
+            <p className="mt-4 rounded-xl border border-[#5a4512] bg-[#241c08] p-3 text-sm text-[#f5c96b]">
+              El servidor y la base están en regiones distintas, y cada consulta cruza el continente. En Vercel → Settings → Functions → Function
+              Region elige <strong>{regionesNeon[rendimiento.region].vercel}</strong> y vuelve a desplegar.
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted">Servidor y base en la misma zona. La primera visita tras unos minutos sin uso tarda un poco más porque Neon despierta la base.</p>
+          )}
         </Bloque>
 
         <Bloque icono="correo" titulo="Avisos de cobro por correo">

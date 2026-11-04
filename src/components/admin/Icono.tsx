@@ -28,6 +28,8 @@ const trazos = {
   lapiz: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z",
   candado: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
   pulso: "M22 12h-4l-3 9L9 3l-3 9H2",
+  repetir: "M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6",
+  bolsa: "M6 2l-3 4v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0",
 } as const;
 
 export type NombreIcono = keyof typeof trazos;

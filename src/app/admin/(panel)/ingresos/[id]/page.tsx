@@ -1,28 +1,29 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
+import { CampoReparto } from "@/components/admin/CampoReparto";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { Selector } from "@/components/admin/Selector";
 import { BarraGuardar, botonPeligro, Campo, Encabezado, entrada, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { listaProyectos, listaUsuarios } from "@/lib/admin/consultas";
+import { listaProyectos, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { hoy } from "@/lib/admin/formato";
 import { eliminarIngreso, guardarIngreso } from "../../acciones";
 
 export const metadata: Metadata = { title: "Ingreso" };
 
-type Ingreso = { id: number; fecha: string; descripcion: string; monto: number; proyecto_id: number | null; recibido_por: number | null; notas: string | null };
+type Ingreso = { id: number; fecha: string; descripcion: string; monto: number; proyecto_id: number | null; recibido_por: number | null; notas: string | null; mant_mes: string | null; reparto: Reparto };
 
 export default async function FichaIngreso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
-  await exigirUsuario();
   const { id } = await params;
   const q = await searchParams;
   const nuevo = id === "nuevo";
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
 
-  const [[ingreso], proyectos, usuarios] = await Promise.all([
+  const [, [ingreso], proyectos, usuarios] = await Promise.all([
+    exigirUsuario(),
     nuevo ? Promise.resolve([undefined]) : db()<Ingreso[]>`select * from ingresos where id = ${Number(id)}`,
     listaProyectos(),
     listaUsuarios(),
@@ -65,6 +66,12 @@ export default async function FichaIngreso({ params, searchParams }: { params: P
             opciones={[{ valor: "", texto: "Cuenta de la empresa" }, ...usuarios.map((u) => ({ valor: String(u.id), texto: `Cuenta de ${u.nombre.split(" ")[0]}` }))]}
           />
           <p className="mt-2 text-xs text-muted">Si llegó a la cuenta de uno de ustedes, se considera en el reparto.</p>
+        </div>
+        <Campo etiqueta="¿Es una mantención mensual? (opcional)" ayuda="Elige el mes que paga y quedará marcado como cobrado en Mantenciones. Requiere proyecto.">
+          <input name="mant_mes" type="month" defaultValue={ingreso?.mant_mes ?? ""} className={entrada} />
+        </Campo>
+        <div className="sm:col-span-2">
+          <CampoReparto socios={usuarios} inicial={ingreso?.reparto ?? null} textoBase="Como el proyecto o el general" />
         </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Número de factura, medio de pago…" defaultValue={ingreso?.notas ?? ""} className={entrada} />

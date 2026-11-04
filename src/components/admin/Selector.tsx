@@ -16,7 +16,7 @@ export function Selector({
 }) {
   const [valor, setValor] = useState(inicial);
   return (
-    <fieldset>
+    <fieldset className="min-w-0">
       <legend className="text-sm font-medium text-[#c9c9cf]">{etiqueta}</legend>
       <input type="hidden" name={name} value={valor} />
       <div className="mt-2 flex flex-wrap gap-2">

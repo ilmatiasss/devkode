@@ -21,6 +21,7 @@ import {
   texto,
 } from "@/lib/admin/formato";
 import { categoriasGasto, ciclos, claves, estadosProyecto, mesesPorCiclo, monedas } from "@/lib/admin/opciones";
+import { nombreMes } from "@/lib/admin/formato";
 
 // Lee y valida el formulario; si algo no cuadra, vuelve al formulario con el mensaje
 function validar<T>(leer: () => T, volver: string): T {
@@ -42,6 +43,22 @@ async function usuarioODelaEmpresa(id: number | null) {
   const [fila] = await db()`select id from usuarios where id = ${id}`;
   return fila ? id : null;
 }
+
+// Reparto personalizado del formulario (componente CampoReparto). Null = usar el general/del proyecto.
+async function leerReparto(fd: FormData, volver: string) {
+  if (fd.get("reparto_modo") !== "personalizado") return null;
+  const usuarios = await db()<{ id: number }[]>`select id from usuarios order by id`;
+  const reparto: Record<string, number> = {};
+  for (const u of usuarios) {
+    const n = Math.round(Number(fd.get(`reparto_${u.id}`)));
+    if (!Number.isFinite(n) || n < 0 || n > 100) volverCon(volver, "porcentajes");
+    reparto[String(u.id)] = n;
+  }
+  if (Object.values(reparto).reduce((a, b) => a + b, 0) !== 100) volverCon(volver, "porcentajes");
+  return reparto;
+}
+
+const mesValido = (v: FormDataEntryValue | null) => (typeof v === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : null);
 
 // ---------------- Sesión ----------------
 
@@ -93,15 +110,21 @@ export async function guardarProyecto(fd: FormData) {
       inicio: fechaDe(fd, "inicio", false),
       entrega: fechaDe(fd, "entrega", false),
       notas: opcional(fd, "notas", 4000),
+      mant_activa: fd.get("mant_activa") === "on",
+      mant_monto: String(fd.get("mant_monto") ?? "").trim() ? pesosDe(fd, "mant_monto") : 0,
+      mant_dia: Math.min(28, Math.max(1, Math.round(Number(fd.get("mant_dia")) || 5))),
+      mant_desde: fechaDe(fd, "mant_desde", false),
     }),
     `/admin/proyectos/${id ?? "nuevo"}`,
   );
+  const reparto = await leerReparto(fd, `/admin/proyectos/${id ?? "nuevo"}`);
   const sql = db();
+  const fila = { ...datos, reparto: reparto ? sql.json(reparto) : null };
   if (id) {
-    await sql`update proyectos set ${sql(datos)} where id = ${id}`;
+    await sql`update proyectos set ${sql(fila)} where id = ${id}`;
     redirect(`/admin/proyectos/${id}?ok=guardado`);
   }
-  const [nuevo] = await sql<{ id: number }[]>`insert into proyectos ${sql(datos)} returning id`;
+  const [nuevo] = await sql<{ id: number }[]>`insert into proyectos ${sql(fila)} returning id`;
   redirect(`/admin/proyectos/${nuevo.id}?ok=guardado`);
 }
 
@@ -129,9 +152,17 @@ export async function guardarIngreso(fd: FormData) {
     `/admin/ingresos/${id ?? "nuevo"}`,
   );
   datos.recibido_por = await usuarioODelaEmpresa(datos.recibido_por);
+  const reparto = await leerReparto(fd, `/admin/ingresos/${id ?? "nuevo"}`);
+  const mant_mes = datos.proyecto_id ? mesValido(fd.get("mant_mes")) : null;
   const sql = db();
-  if (id) await sql`update ingresos set ${sql(datos)} where id = ${id}`;
-  else await sql`insert into ingresos ${sql(datos)}`;
+  const fila = { ...datos, mant_mes, reparto: reparto ? sql.json(reparto) : null };
+  try {
+    if (id) await sql`update ingresos set ${sql(fila)} where id = ${id}`;
+    else await sql`insert into ingresos ${sql(fila)}`;
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") volverCon(`/admin/ingresos/${id ?? "nuevo"}`, "mantencionRepetida");
+    throw error;
+  }
   redirect(`/admin/ingresos?mes=${datos.fecha.slice(0, 7)}&ok=guardado`);
 }
 
@@ -155,14 +186,19 @@ export async function guardarGasto(fd: FormData) {
       monto: pesosDe(fd, "monto", 1),
       pagado_por: idDe(fd, "pagado_por"),
       proyecto_id: idDe(fd, "proyecto_id"),
+      servicio_id: idDe(fd, "servicio_id"),
+      proveedor: opcional(fd, "proveedor", 120),
+      documento: opcional(fd, "documento", 60),
       notas: opcional(fd, "notas", 2000),
     }),
     `/admin/gastos/${id ?? "nuevo"}`,
   );
   datos.pagado_por = await usuarioODelaEmpresa(datos.pagado_por);
+  const reparto = await leerReparto(fd, `/admin/gastos/${id ?? "nuevo"}`);
   const sql = db();
-  if (id) await sql`update gastos set ${sql(datos)} where id = ${id}`;
-  else await sql`insert into gastos ${sql(datos)}`;
+  const fila = { ...datos, reparto: reparto ? sql.json(reparto) : null };
+  if (id) await sql`update gastos set ${sql(fila)} where id = ${id}`;
+  else await sql`insert into gastos ${sql(fila)}`;
   redirect(`/admin/gastos?mes=${datos.fecha.slice(0, 7)}&ok=guardado`);
 }
 
@@ -220,16 +256,42 @@ export async function registrarPagoServicio(fd: FormData) {
 
   const sql = db();
   await sql.begin(async (tx) => {
-    const [s] = await tx<{ nombre: string; categoria: string; ciclo: keyof typeof mesesPorCiclo; proximo_cobro: string | null; pagado_por: number | null; proyecto_id: number | null }[]>`
-      select nombre, categoria, ciclo, proximo_cobro, pagado_por, proyecto_id from servicios where id = ${id} for update`;
+    const [s] = await tx<{ nombre: string; proveedor: string | null; categoria: string; ciclo: keyof typeof mesesPorCiclo; proximo_cobro: string | null; pagado_por: number | null; proyecto_id: number | null }[]>`
+      select nombre, proveedor, categoria, ciclo, proximo_cobro, pagado_por, proyecto_id from servicios where id = ${id} for update`;
     if (!s) return;
-    await tx`insert into gastos (fecha, descripcion, categoria, monto, pagado_por, proyecto_id, servicio_id)
-      values (${fechaPago}, ${s.nombre}, ${s.categoria}, ${montoPesos}, ${s.pagado_por}, ${s.proyecto_id}, ${id})`;
+    await tx`insert into gastos (fecha, descripcion, categoria, monto, pagado_por, proyecto_id, servicio_id, proveedor)
+      values (${fechaPago}, ${s.nombre}, ${s.categoria}, ${montoPesos}, ${s.pagado_por}, ${s.proyecto_id}, ${id}, ${s.proveedor})`;
     const meses = mesesPorCiclo[s.ciclo];
     if (meses === 0) await tx`update servicios set activo = false, proximo_cobro = null where id = ${id}`;
     else await tx`update servicios set proximo_cobro = ${sumarMeses(s.proximo_cobro ?? fechaPago, meses)} where id = ${id}`;
   });
   redirect("/admin/servicios?ok=pago");
+}
+
+// ---------------- Mantención mensual ----------------
+
+// Registra el pago de la mantención de un mes como ingreso del proyecto
+export async function registrarMantencion(fd: FormData) {
+  await exigirUsuario();
+  const id = idDe(fd, "proyecto_id");
+  const mes = mesValido(fd.get("mes"));
+  const volver = String(fd.get("volver") ?? "") === "proyecto" && id ? `/admin/proyectos/${id}` : "/admin/mantenciones";
+  if (!id || !mes) volverCon(volver, "faltan");
+  const monto = validar(() => pesosDe(fd, "monto", 1), volver);
+  const fecha = validar(() => fechaDe(fd, "fecha", false), volver) ?? hoy();
+  const recibido = await usuarioODelaEmpresa(idDe(fd, "recibido_por"));
+
+  const sql = db();
+  const [p] = await sql<{ nombre: string }[]>`select nombre from proyectos where id = ${id}`;
+  if (!p) volverCon(volver, "faltan");
+  try {
+    await sql`insert into ingresos (fecha, descripcion, monto, proyecto_id, recibido_por, mant_mes)
+      values (${fecha}, ${`Mantención ${nombreMes(mes)} · ${p.nombre}`}, ${monto}, ${id}, ${recibido}, ${mes})`;
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") volverCon(volver, "mantencionRepetida");
+    throw error;
+  }
+  redirect(`${volver}?ok=mantencion`);
 }
 
 // ---------------- Ajustes ----------------

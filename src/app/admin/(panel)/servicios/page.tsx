@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icono } from "@/components/admin/Icono";
 import { Avatar, botonPrimario, Encabezado, Etiqueta, Kpi, Progreso, Seccion, tarjeta, Vacio } from "@/components/admin/ui";
-import { exigirUsuario } from "@/lib/admin/auth";
+import { sesionEnParalelo } from "@/lib/admin/auth";
 import { enPesos, listaServicios, mensualEnPesos, valorDolar } from "@/lib/admin/consultas";
 import { clp, diasHasta, dinero, fecha, hoy } from "@/lib/admin/formato";
 import { ciclos, colorDeCategoria, etiquetaCategoria, mesesPorCiclo } from "@/lib/admin/opciones";
@@ -11,13 +11,14 @@ import { registrarPagoServicio } from "../acciones";
 export const metadata: Metadata = { title: "Servicios contratados" };
 
 export default async function Servicios() {
-  await exigirUsuario();
+  const sesion = sesionEnParalelo();
   const [servicios, dolar] = await Promise.all([listaServicios(), valorDolar()]);
   const activos = servicios.filter((s) => s.activo);
   const inactivos = servicios.filter((s) => !s.activo);
   const mensual = activos.reduce((suma, s) => suma + mensualEnPesos(s, dolar), 0);
   const esteMes = activos.filter((s) => s.proximo_cobro && diasHasta(s.proximo_cobro) <= 30).reduce((suma, s) => suma + enPesos(s, dolar), 0);
 
+  await sesion;
   return (
     <>
       <Encabezado
