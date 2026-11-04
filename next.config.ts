@@ -41,6 +41,14 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Las respuestas del formulario nunca se guardan en caché
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      // El panel es privado: ni buscadores ni cachés intermedias
+      {
+        source: "/admin/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
     ];
   },
 };
