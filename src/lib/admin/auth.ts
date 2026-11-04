@@ -37,9 +37,9 @@ export async function crearSesion(usuarioId: number) {
 
 // Usuario de la sesión actual (o null). Se resuelve una sola vez por solicitud.
 export const usuarioActual = cache(async (): Promise<Usuario | null> => {
-  if (!dbConfigurada) return null;
+  // Se leen las cookies antes que nada: así la página nunca se genera de antemano al desplegar
   const token = (await cookies()).get(COOKIE)?.value;
-  if (!token || token.length > 100) return null;
+  if (!dbConfigurada || !token || token.length > 100) return null;
   const [usuario] = await db()<Usuario[]>`
     select u.id, u.email, u.nombre, u.porcentaje
     from sesiones s join usuarios u on u.id = s.usuario_id
