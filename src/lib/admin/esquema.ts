@@ -124,8 +124,20 @@ create table if not exists avisos_mantencion (
   primary key (proyecto_id, mes)
 );
 
-insert into ajustes (clave, valor) values ('esquema', '2') on conflict (clave) do update set valor = excluded.valor;
+-- Versión 3: transferencias entre socios (o entre un socio y la cuenta de la empresa) para saldar el reparto
+create table if not exists transferencias (
+  id serial primary key,
+  fecha date not null,
+  de_usuario integer references usuarios(id) on delete set null, -- vacío = cuenta de la empresa
+  a_usuario integer references usuarios(id) on delete set null, -- vacío = cuenta de la empresa
+  monto integer not null check (monto > 0), -- en pesos
+  notas text,
+  creado timestamptz not null default now()
+);
+create index if not exists transferencias_fecha on transferencias(fecha);
+
+insert into ajustes (clave, valor) values ('esquema', '3') on conflict (clave) do update set valor = excluded.valor;
 `;
 
 // Se sube cada vez que el esquema cambia: el panel lo aplica solo la primera vez que lo necesita
-export const VERSION_ESQUEMA = "2";
+export const VERSION_ESQUEMA = "3";

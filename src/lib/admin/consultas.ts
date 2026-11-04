@@ -73,6 +73,15 @@ export async function resumenPeriodo(desde: string | null, hasta: string | null)
 
 // ---------------- Reparto entre socios ----------------
 
+export type Transferencia = { id: number; fecha: string; de_usuario: number | null; a_usuario: number | null; monto: number; notas: string | null };
+
+// Plata que se pasaron entre socios (o con la cuenta de la empresa) para quedar parejos
+export function listaTransferencias(desde: string | null, hasta: string | null) {
+  const sql = db();
+  const filtro = desde && hasta ? sql`where fecha >= ${desde} and fecha < ${hasta}` : sql``;
+  return sql<Transferencia[]>`select id, fecha, de_usuario, a_usuario, monto, notas from transferencias ${filtro} order by fecha desc, id desc`;
+}
+
 // {"<id usuario>": porcentaje}. Null = usar el reparto del proyecto o el general
 export type Reparto = Record<string, number> | null;
 

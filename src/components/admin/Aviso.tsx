@@ -10,6 +10,7 @@ const avisos: Record<string, string> = {
   eliminado: "Eliminado",
   pago: "Pago registrado y próximo cobro actualizado",
   mantencion: "Mantención registrada como ingreso",
+  transferencia: "Transferencia registrada",
   clave: "Contraseña actualizada",
   sesiones: "Se cerraron las demás sesiones",
 };

@@ -1,43 +1,70 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
 import { BarrasMeses } from "@/components/admin/Graficos";
 import { Icono } from "@/components/admin/Icono";
-import { Avatar, colorDe, Encabezado, Kpi, Pestanas, SelectorMes, tarjeta } from "@/components/admin/ui";
+import { InputMonto } from "@/components/admin/InputMonto";
+import { Selector } from "@/components/admin/Selector";
+import { Avatar, botonPrimario, Campo, colorDe, Encabezado, entrada, Kpi, Pestanas, SelectorMes, tarjeta } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { calcularReparto, listaUsuarios, resumenPeriodo } from "@/lib/admin/consultas";
+import { calcularReparto, listaTransferencias, listaUsuarios, resumenPeriodo } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
-import { clp, esMes, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
+import { clp, esMes, fecha, hoy, mesActual, moverMes, nombreMes } from "@/lib/admin/formato";
+import { eliminarTransferencia, guardarTransferencia } from "../acciones";
 
 export const metadata: Metadata = { title: "Reparto" };
 
 type Busqueda = { mes?: string; anio?: string; todo?: string };
 
 function periodoDe(q: Busqueda) {
-  if (q.todo) return { tipo: "todo" as const, desde: null, hasta: null, titulo: "Desde el inicio" };
+  if (q.todo) return { tipo: "todo" as const, desde: null, hasta: null, titulo: "Desde el inicio", query: "todo=1" };
   if (q.anio && /^\d{4}$/.test(q.anio)) {
     const a = Number(q.anio);
-    return { tipo: "anio" as const, anio: a, desde: `${a}-01-01`, hasta: `${a + 1}-01-01`, titulo: `Año ${a}` };
+    return { tipo: "anio" as const, anio: a, desde: `${a}-01-01`, hasta: `${a + 1}-01-01`, titulo: `Año ${a}`, query: `anio=${a}` };
   }
   const mes = esMes(q.mes) ? q.mes : mesActual();
-  return { tipo: "mes" as const, mes, desde: `${mes}-01`, hasta: `${moverMes(mes, 1)}-01`, titulo: nombreMes(mes) };
+  return { tipo: "mes" as const, mes, desde: `${mes}-01`, hasta: `${moverMes(mes, 1)}-01`, titulo: nombreMes(mes), query: `mes=${mes}` };
 }
 
 export default async function Reparto({ searchParams }: { searchParams: Promise<Busqueda> }) {
   const q = await searchParams;
   const periodo = periodoDe(q);
-  const [, resumen, usuarios] = await Promise.all([exigirUsuario(), resumenPeriodo(periodo.desde, periodo.hasta), listaUsuarios()]);
+  const [, resumen, usuarios, transferencias] = await Promise.all([
+    exigirUsuario(),
+    resumenPeriodo(periodo.desde, periodo.hasta),
+    listaUsuarios(),
+    listaTransferencias(periodo.desde, periodo.hasta),
+  ]);
   const calculo = await calcularReparto(periodo.desde, periodo.hasta, usuarios);
   const utilidad = resumen.ingresos - resumen.gastos;
   const de = (lista: { persona: number | null; total: number }[], persona: number | null) => lista.find((f) => f.persona === persona)?.total ?? 0;
+  const entregado = (persona: number | null) => transferencias.filter((t) => t.de_usuario === persona).reduce((s, t) => s + t.monto, 0);
+  const recibido = (persona: number | null) => transferencias.filter((t) => t.a_usuario === persona).reduce((s, t) => s + t.monto, 0);
+  const nombreDe = (id: number | null) => (id === null ? "Empresa" : (usuarios.find((u) => u.id === id)?.nombre.split(" ")[0] ?? "Ex socio"));
 
   const socios = usuarios.map((u) => {
     // Considera los porcentajes propios de cada proyecto, ingreso o gasto
     const corresponde = Math.round(calculo.corresponde.get(u.id) ?? 0);
     const recibio = de(resumen.porPersonaI, u.id);
     const pago = de(resumen.porPersonaG, u.id);
-    return { ...u, corresponde, recibio, pago, diferencia: corresponde - (recibio - pago) };
+    const transfirio = recibido(u.id) - entregado(u.id); // neto de lo que se pasaron entre ellos
+    return { ...u, corresponde, recibio, pago, transfirio, diferencia: corresponde - (recibio - pago + transfirio) };
   });
-  const enEmpresa = de(resumen.porPersonaI, null) - de(resumen.porPersonaG, null);
+  const enEmpresa = de(resumen.porPersonaI, null) - de(resumen.porPersonaG, null) - recibido(null) + entregado(null);
+
+  // Sugerencia para el formulario: quien debe entregar le pasa a quien debe recibir
+  const debe = [...socios].sort((a, b) => a.diferencia - b.diferencia)[0];
+  const cobra = [...socios].sort((a, b) => b.diferencia - a.diferencia)[0];
+  const sugerencia =
+    debe && cobra && debe.diferencia < 0 && cobra.diferencia > 0
+      ? { de: String(debe.id), a: String(cobra.id), monto: Math.min(-debe.diferencia, cobra.diferencia) }
+      : cobra && cobra.diferencia > 0
+        ? { de: "empresa", a: String(cobra.id), monto: cobra.diferencia }
+        : { de: String(usuarios[0]?.id ?? "empresa"), a: String(usuarios[1]?.id ?? "empresa"), monto: 0 };
+  // Si se mira un mes pasado, la transferencia por defecto queda en el último día de ese mes
+  const fechaSugerida =
+    periodo.tipo === "mes" && periodo.mes < mesActual() ? new Date(Date.parse(`${moverMes(periodo.mes, 1)}-01`) - 86_400_000).toISOString().slice(0, 10) : hoy();
+  const cuentas = [...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0], color: colorDe(u.nombre) })), { valor: "empresa", texto: "Cuenta de la empresa" }];
 
   const anioActual = Number(mesActual().slice(0, 4));
   const meses =
@@ -88,8 +115,8 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
 
       <h2 className="mt-10 mb-1 text-lg font-medium tracking-tight capitalize">{periodo.titulo}</h2>
       <p className="mb-5 max-w-3xl text-sm leading-relaxed text-muted">
-        A cada socio le corresponde su porcentaje de cada ingreso y gasto: el general, o el propio del proyecto o del movimiento si lo tiene. Como
-        algunos pagos llegan o salen de sus cuentas personales, abajo ves cuánto falta para quedar parejos.
+        A cada uno le corresponde su parte de lo que dejó cada proyecto. Como los pagos llegan a distintas cuentas, abajo ves cuánto falta para
+        quedar parejos. Cuando uno le pase plata al otro, anótenlo en Transferencias y la cuenta se salda.
       </p>
 
       {/* Reparto visual de la utilidad */}
@@ -132,11 +159,26 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                   <dt className="text-muted">Pagó de su bolsillo</dt>
                   <dd className="tabular-nums">+ {clp(s.pago)}</dd>
                 </div>
+                {s.transfirio !== 0 ? (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-muted">{s.transfirio > 0 ? "Le transfirieron" : "Transfirió"}</dt>
+                    <dd className="tabular-nums">
+                      {s.transfirio > 0 ? "−" : "+"} {clp(Math.abs(s.transfirio))}
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
-              <div className={`mt-5 flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${recibe ? "bg-[#0f2219] text-[#7ee2a0]" : "bg-[#2a1118] text-[#ff8fa3]"}`}>
-                <span className="text-sm">{recibe ? "Debe recibir" : "Debe entregar"}</span>
-                <span className="font-display text-xl font-medium tabular-nums">{clp(Math.abs(s.diferencia))}</span>
-              </div>
+              {s.diferencia === 0 ? (
+                <div className="mt-5 flex items-center justify-between gap-3 rounded-xl bg-white/[0.04] px-4 py-3 text-[#c9c9cf]">
+                  <span className="text-sm">Está al día</span>
+                  <Icono nombre="check" className="size-5 text-[#7ee2a0]" />
+                </div>
+              ) : (
+                <div className={`mt-5 flex items-center justify-between gap-3 rounded-xl px-4 py-3 ${recibe ? "bg-[#0f2219] text-[#7ee2a0]" : "bg-[#2a1118] text-[#ff8fa3]"}`}>
+                  <span className="text-sm">{recibe ? "Debe recibir" : "Debe entregar"}</span>
+                  <span className="font-display text-xl font-medium tabular-nums">{clp(Math.abs(s.diferencia))}</span>
+                </div>
+              )}
             </li>
           );
         })}
@@ -148,6 +190,73 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
           quien tenga que entregar.
         </span>
       </p>
+
+      {usuarios.length > 1 ? (
+        <section id="transferir" className="mt-10 grid scroll-mt-24 gap-6 lg:grid-cols-[1fr_1fr]">
+          <div className={`${tarjeta} aparecer bg-[radial-gradient(120%_120%_at_100%_0%,rgb(155_114_255/0.12),transparent_60%)] p-5 md:p-6`}>
+            <h2 className="flex items-center gap-2 font-medium">
+              <Icono nombre="billetera" className="size-4 text-accent-soft" /> Registrar transferencia
+            </h2>
+            <p className="mt-1 text-sm text-muted">Cuando uno le pasa plata al otro (o la empresa a un socio) para quedar parejos.</p>
+            <form action={guardarTransferencia} className="mt-5 grid min-w-0 gap-5">
+              <input type="hidden" name="volver" value={periodo.query} />
+              <Selector name="de" etiqueta="¿Quién entrega?" inicial={sugerencia.de} opciones={cuentas} />
+              <Selector name="a" etiqueta="¿Quién recibe?" inicial={sugerencia.a} opciones={cuentas} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Campo etiqueta="Monto">
+                  <InputMonto name="monto" required defaultValue={sugerencia.monto || undefined} />
+                </Campo>
+                <Campo etiqueta="Fecha">
+                  <input name="fecha" type="date" required defaultValue={fechaSugerida} className={entrada} />
+                </Campo>
+              </div>
+              <label className="block text-sm">
+                <span className="font-medium text-[#c9c9cf]">
+                  Nota<span className="font-normal text-muted"> (opcional)</span>
+                </span>
+                <input name="notas" maxLength={300} placeholder="Ej: su parte de la mantención de Fruterra" className={entrada} />
+              </label>
+              <button type="submit" className={`${botonPrimario} w-full`}>
+                <Icono nombre="check" className="size-4" /> Registrar transferencia
+              </button>
+            </form>
+          </div>
+
+          <div className={`${tarjeta} aparecer h-fit p-5 md:p-6`}>
+            <h2 className="mb-3 font-medium">Transferencias del período</h2>
+            {transferencias.length ? (
+              <ul className="divide-y divide-line">
+                {transferencias.map((t) => (
+                  <li key={t.id} className="flex items-center gap-3 py-3 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-1.5">
+                        <span>{nombreDe(t.de_usuario)}</span>
+                        <Icono nombre="adelante" className="size-3.5 text-muted" />
+                        <span>{nombreDe(t.a_usuario)}</span>
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        {fecha(t.fecha)}
+                        {t.notas ? ` · ${t.notas}` : ""}
+                      </p>
+                    </div>
+                    <span className="tabular-nums">{clp(t.monto)}</span>
+                    <form action={eliminarTransferencia}>
+                      <input type="hidden" name="id" value={t.id} />
+                      <input type="hidden" name="volver" value={periodo.query} />
+                      <BotonConfirmar mensaje="¿Eliminar esta transferencia?" className="grid size-9 place-items-center rounded-lg text-muted hover:bg-[#2a1118] hover:text-[#ff8fa3]">
+                        <Icono nombre="basura" className="size-4" />
+                        <span className="sr-only">Eliminar transferencia</span>
+                      </BotonConfirmar>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-4 text-center text-sm text-muted">No hay transferencias en este período.</p>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {calculo.porProyecto.length ? (
         <section className={`${tarjeta} aparecer mt-10 p-5`}>

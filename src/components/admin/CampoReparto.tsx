@@ -5,7 +5,8 @@ import { useState } from "react";
 type Socio = { id: number; nombre: string; porcentaje: number };
 
 // Elige cómo se reparte un proyecto, ingreso o gasto entre los socios: el reparto que ya aplica
-// (general o del proyecto) o porcentajes propios. Con dos socios, mover uno ajusta al otro.
+// (general o del proyecto) o porcentajes propios. Los propios quedan escondidos en "Opciones
+// avanzadas" porque casi nunca se usan. Con dos socios, mover uno ajusta al otro.
 export function CampoReparto({
   socios,
   inicial,
@@ -18,6 +19,7 @@ export function CampoReparto({
   etiqueta?: string;
 }) {
   const [personalizado, setPersonalizado] = useState(Boolean(inicial));
+  const [abierto, setAbierto] = useState(Boolean(inicial));
   const [valores, setValores] = useState<Record<number, number>>(() =>
     Object.fromEntries(socios.map((s) => [s.id, Number(inicial?.[String(s.id)] ?? s.porcentaje)])),
   );
@@ -32,9 +34,23 @@ export function CampoReparto({
   }
 
   if (socios.length < 2) return null;
+  if (!abierto) {
+    return (
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-2xl border border-dashed border-line px-4 py-3 text-sm">
+        <input type="hidden" name="reparto_modo" value="base" />
+        <span className="text-muted">
+          Reparto: <span className="text-fg">{textoBase.toLowerCase()}</span>
+        </span>
+        <button type="button" onClick={() => setAbierto(true)} aria-expanded={false} className="text-xs text-accent-soft hover:text-fg">
+          Opciones avanzadas
+        </button>
+      </div>
+    );
+  }
   return (
     <fieldset className="min-w-0 rounded-2xl border border-line bg-bg/40 p-4">
       <legend className="px-1 text-sm font-medium text-[#c9c9cf]">{etiqueta}</legend>
+      <p className="mb-3 text-xs text-muted">Solo si este caso se reparte distinto a lo normal.</p>
       <input type="hidden" name="reparto_modo" value={personalizado ? "personalizado" : "base"} />
       <div className="flex flex-wrap gap-2">
         {[
@@ -45,7 +61,10 @@ export function CampoReparto({
             key={String(o.v)}
             type="button"
             aria-pressed={personalizado === o.v}
-            onClick={() => setPersonalizado(o.v)}
+            onClick={() => {
+              setPersonalizado(o.v);
+              if (!o.v && !inicial) setAbierto(false);
+            }}
             className={`rounded-full border px-3.5 py-2 text-sm transition ${personalizado === o.v ? "border-accent bg-accent/15 text-fg" : "border-line text-muted hover:text-fg"}`}
           >
             {o.t}

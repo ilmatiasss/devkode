@@ -294,6 +294,41 @@ export async function registrarMantencion(fd: FormData) {
   redirect(`${volver}?ok=mantencion`);
 }
 
+// ---------------- Transferencias entre socios ----------------
+
+// Vuelve a la misma vista de Reparto (mes, año o todo) desde donde se envió el formulario
+function rutaReparto(fd: FormData) {
+  const q = String(fd.get("volver") ?? "");
+  return /^(mes=\d{4}-(0[1-9]|1[0-2])|anio=\d{4}|todo=1)$/.test(q) ? `/admin/reparto?${q}` : "/admin/reparto";
+}
+const conAviso = (ruta: string, aviso: string) => `${ruta}${ruta.includes("?") ? "&" : "?"}${aviso}`;
+
+export async function guardarTransferencia(fd: FormData) {
+  await exigirUsuario();
+  const volver = rutaReparto(fd);
+  const leer = (campo: string) => (fd.get(campo) === "empresa" ? null : idDe(fd, campo));
+  try {
+    const monto = pesosDe(fd, "monto", 1);
+    const fecha = fechaDe(fd, "fecha", false) ?? hoy();
+    const notas = opcional(fd, "notas", 300);
+    const de = await usuarioODelaEmpresa(leer("de"));
+    const a = await usuarioODelaEmpresa(leer("a"));
+    if (de === a) throw new ErrorDeDatos("transferencia");
+    await db()`insert into transferencias (fecha, de_usuario, a_usuario, monto, notas) values (${fecha}, ${de}, ${a}, ${monto}, ${notas})`;
+  } catch (error) {
+    if (error instanceof ErrorDeDatos) redirect(conAviso(volver, `error=${error.codigo}`));
+    throw error;
+  }
+  redirect(conAviso(volver, "ok=transferencia"));
+}
+
+export async function eliminarTransferencia(fd: FormData) {
+  await exigirUsuario();
+  const id = idDe(fd, "id");
+  if (id) await db()`delete from transferencias where id = ${id}`;
+  redirect(conAviso(rutaReparto(fd), "ok=eliminado"));
+}
+
 // ---------------- Ajustes ----------------
 
 export async function guardarAjustes(fd: FormData) {
