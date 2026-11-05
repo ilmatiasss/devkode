@@ -1,0 +1,19 @@
+DEVKODE · NUESTROS CLIENTES EN MOVIMIENTO
+
+Cuatro videos independientes, verticales 9:16:
+01-Fruterra-FullHD.mp4
+02-RutaFood-FullHD.mp4
+03-Solis-Racing-Parts-FullHD.mp4
+04-Reycar-FullHD.mp4
+
+Cada video dura 10 segundos y está exportado en 1080 × 1920 a 30 fps.
+Formato H.264 con audio AAC estéreo. Música y efectos originales, sin voz.
+
+Los archivos Vista-*.gif son vistas previas reducidas sin sonido.
+Publica los MP4 para conservar la resolución y el audio.
+Puedes añadir cada uno a una historia destacada llamada Clientes.
+
+Los logos mantienen su diseño, colores y proporciones originales. El movimiento se aplica al logo completo y a los elementos de la composición.
+Solis Racing Parts y Reycar conservan la indicación En desarrollo.
+
+Clientes-Animados-editable.html contiene las cuatro animaciones y sus fuentes integradas. Abre el archivo en un navegador. Añade ?cliente=0, ?cliente=1, ?cliente=2 o ?cliente=3 a la dirección para elegir Fruterra, RutaFood, Solis Racing Parts o Reycar, respectivamente. La reproducción HTML no incorpora audio; los MP4 sí.
