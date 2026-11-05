@@ -1,0 +1,12 @@
+DEVKODE · NUESTROS CLIENTES
+
+00-Nuestros-clientes-Historia.png: imagen general, 1080 × 1920.
+00-Nuestros-clientes-Feed.png: imagen general, 1080 × 1350.
+01-Fruterra.png a 04-Reycar.png: historias individuales, 1080 × 1920.
+
+Para crear la sección destacada: publica la imagen general y las cuatro historias individuales, en ese orden, y guárdalas en una historia destacada llamada Clientes.
+
+Solis Racing Parts y Reycar figuran En desarrollo de acuerdo con la información actual del sitio. Se usaron los cuatro logos originales disponibles en el repositorio de la web.
+
+Clientes-DevKode-editable.html: composición con fuentes e imágenes integradas, disponible sin conexión.
+Texto-para-publicar.txt: descripción sugerida y texto alternativo.
