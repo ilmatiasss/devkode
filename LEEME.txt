@@ -1,0 +1,16 @@
+DEVKODE · RENOVACIÓN DE MARCA
+
+Video final: DevKode-Renovacion-FullHD.mp4
+24 segundos · 1080 × 1920 · 9:16 · 30 fps
+H.264 + AAC estéreo. Listo para Instagram Reels y TikTok.
+Música electrónica y efectos originales. Sin voz en off.
+
+Descarga el MP4 y selecciónalo desde la galería al crear tu publicación. Activa la opción de subir con la mayor calidad disponible en la aplicación.
+
+Vista-previa.gif es una vista reducida, sin sonido.
+Portada.jpg es un fotograma de cierre.
+Texto-para-publicar.txt contiene una descripción sugerida.
+
+DevKode-Renovacion-editable.html permite reproducir la animación en un navegador sin conexión. Las fuentes están integradas.
+
+Identidad anterior tomada del componente Logo.tsx del repositorio DevKode, con símbolo Dk y texto DevKode. Identidad nueva: devkode. en Sora Bold, con punto violeta. Paleta #0B0B0C, #EDEDEE, #9B72FF, #C4ADFF.
