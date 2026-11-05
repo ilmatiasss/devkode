@@ -1,0 +1,12 @@
+CARRUSEL DEVKODE · POTENCIALES CLIENTES
+
+Publica las imágenes DevKode-01.png a DevKode-06.png en ese orden.
+Formato: 1080 × 1350 px, vertical 4:5.
+Texto sugerido y textos alternativos: Texto-para-publicar.txt.
+Vista-previa.png es una vista de las seis láminas juntas.
+
+El archivo carrusel-editable.html contiene las fuentes e imágenes integradas. Puedes abrirlo sin conexión en tu navegador y editar sus textos y estilos con un editor de código.
+
+Identidad: logo devkode. en Sora Bold; Sora para títulos, IBM Plex Sans para texto e IBM Plex Mono para etiquetas. Negro #0B0B0C, blanco #EDEDEE, violeta #9B72FF y lavanda #C4ADFF.
+
+La ilustración de navegador y móvil es conceptual. Los logos Fruterra y RutaFood corresponden a los archivos originales del sitio.
