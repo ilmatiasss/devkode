@@ -139,8 +139,19 @@ create index if not exists transferencias_fecha on transferencias(fecha);
 -- Versión 4: un pago que llegó repartido entre varias cuentas: {"<id usuario>" | "empresa": monto}
 alter table ingresos add column if not exists recibido_detalle jsonb;
 
-insert into ajustes (clave, valor) values ('esquema', '4') on conflict (clave) do update set valor = excluded.valor;
+-- Versión 5: porcentajes con decimales y repartos distintos por rango de meses
+alter table usuarios alter column porcentaje type numeric(5, 2);
+create table if not exists periodos_reparto (
+  id serial primary key,
+  desde date not null, -- primer día del mes inicial
+  hasta date,          -- último día del mes final; vacío = sin fin
+  reparto jsonb not null, -- {"<id de usuario>": porcentaje}
+  nota text,
+  creado timestamptz not null default now()
+);
+
+insert into ajustes (clave, valor) values ('esquema', '5') on conflict (clave) do update set valor = excluded.valor;
 `;
 
 // Se sube cada vez que el esquema cambia: el panel lo aplica solo la primera vez que lo necesita
-export const VERSION_ESQUEMA = "4";
+export const VERSION_ESQUEMA = "5";

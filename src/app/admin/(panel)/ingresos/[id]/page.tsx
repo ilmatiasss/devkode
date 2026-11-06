@@ -65,7 +65,7 @@ export default async function FichaIngreso({ params, searchParams }: { params: P
           <input name="mant_mes" type="month" defaultValue={ingreso?.mant_mes ?? ""} className={entrada} />
         </Campo>
         <div className="sm:col-span-2">
-          <CampoReparto socios={usuarios} inicial={ingreso?.reparto ?? null} textoBase="Como el proyecto o el general" />
+          <CampoReparto socios={usuarios} inicial={ingreso?.reparto ?? null} textoBase="Según las reglas" />
         </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Número de factura, medio de pago…" defaultValue={ingreso?.notas ?? ""} className={entrada} />

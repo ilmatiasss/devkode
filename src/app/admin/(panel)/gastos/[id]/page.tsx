@@ -125,7 +125,7 @@ export default async function FichaGasto({ params, searchParams }: { params: Pro
           <p className="mt-2 text-xs text-muted">Si lo pagó uno de ustedes de su bolsillo, se le devuelve en el reparto.</p>
         </div>
         <div className="sm:col-span-2">
-          <CampoReparto socios={usuarios} inicial={gasto?.reparto ?? null} textoBase="Como el proyecto o el general" etiqueta="Cómo se reparte este gasto" />
+          <CampoReparto socios={usuarios} inicial={gasto?.reparto ?? null} textoBase="Según las reglas" etiqueta="Cómo se reparte este gasto" />
         </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Enlace a la factura, garantía, detalles…" defaultValue={gasto?.notas ?? ""} className={entrada} />

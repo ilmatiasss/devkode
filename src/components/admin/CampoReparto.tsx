@@ -28,10 +28,10 @@ export function CampoReparto({
   const suma = Object.values(valores).reduce((a, b) => a + b, 0);
 
   function cambiar(id: number, n: number) {
-    const v = Math.max(0, Math.min(100, Math.round(n || 0)));
+    const v = Math.max(0, Math.min(100, Math.round((n || 0) * 100) / 100));
     if (socios.length === 2) {
       const otro = socios.find((s) => s.id !== id)!;
-      setValores({ [id]: v, [otro.id]: 100 - v });
+      setValores({ [id]: v, [otro.id]: Math.round((100 - v) * 100) / 100 });
     } else setValores((prev) => ({ ...prev, [id]: v }));
   }
 
@@ -42,7 +42,7 @@ export function CampoReparto({
         <input type="hidden" name="reparto_modo" value="base" />
         <span className="text-muted">
           Reparto: <span className="text-fg">{textoBase.toLowerCase()}</span>
-          {mostrarGeneral ? <span className="text-fg"> ({socios.map((s) => `${s.nombre.split(" ")[0]} ${s.porcentaje}%`).join(" · ")})</span> : null}
+          {mostrarGeneral ? <span className="text-muted"> (período o general: {socios.map((s) => `${s.nombre.split(" ")[0]} ${s.porcentaje}%`).join(" · ")})</span> : null}
         </span>
         <button type="button" onClick={() => setAbierto(true)} aria-expanded={false} className="text-xs text-accent-soft hover:text-fg">
           Opciones avanzadas
@@ -88,9 +88,10 @@ export function CampoReparto({
                     type="number"
                     min={0}
                     max={100}
+                    step={0.01}
                     value={valores[s.id]}
                     onChange={(e) => cambiar(s.id, Number(e.target.value))}
-                    className="w-16 rounded-lg border border-line bg-bg px-2 py-1 text-right tabular-nums [color-scheme:dark] focus:border-accent focus:outline-none"
+                    className="w-20 rounded-lg border border-line bg-bg px-2 py-1 text-right tabular-nums [color-scheme:dark] focus:border-accent focus:outline-none"
                   />
                   <span className="text-muted">%</span>
                 </span>
@@ -107,8 +108,8 @@ export function CampoReparto({
               />
             </div>
           ))}
-          <p className={`text-xs ${suma === 100 ? "text-muted" : "text-[#ff8fa3]"}`}>
-            {suma === 100 ? "Suman 100%." : `Suman ${suma}%: deben sumar 100%.`}
+          <p className={`text-xs ${Math.abs(suma - 100) < 0.01 ? "text-muted" : "text-[#ff8fa3]"}`}>
+            {Math.abs(suma - 100) < 0.01 ? "Suman 100%. Se aceptan decimales, como 66,67." : `Suman ${Math.round(suma * 100) / 100}%: deben sumar 100%.`}
           </p>
         </div>
       ) : null}

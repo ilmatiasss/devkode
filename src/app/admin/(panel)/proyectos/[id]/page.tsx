@@ -150,7 +150,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
             </div>
           </fieldset>
           <div className="sm:col-span-2">
-            <CampoReparto socios={usuarios} inicial={proyecto?.reparto ?? null} textoBase="Porcentajes generales" etiqueta="Cómo se reparte este proyecto" mostrarGeneral />
+            <CampoReparto socios={usuarios} inicial={proyecto?.reparto ?? null} textoBase="Según las reglas" etiqueta="Cómo se reparte este proyecto" mostrarGeneral />
             <p className="mt-2 text-xs text-muted">Se aplica a todos sus pagos y gastos, salvo que uno tenga su propio reparto.</p>
           </div>
           <Campo etiqueta="Notas" className="sm:col-span-2">
