@@ -95,6 +95,11 @@ export default async function Proyectos({ searchParams }: { searchParams: Promis
                         {abierto ? (dias < 0 ? `Atrasado ${-dias} d` : dias === 0 ? "Entrega hoy" : `Entrega en ${dias} d`) : fecha(p.entrega)}
                       </span>
                     ) : null}
+                    {dias === null && abierto ? (
+                      <span className="flex items-center gap-1.5">
+                        <Icono nombre="calendario" className="size-3.5" /> Sin fecha de entrega
+                      </span>
+                    ) : null}
                     {p.mant_activa ? (
                       <span className="flex items-center gap-1.5 text-accent-soft">
                         <Icono nombre="repetir" className="size-3.5" /> {clp(p.mant_monto)}/mes

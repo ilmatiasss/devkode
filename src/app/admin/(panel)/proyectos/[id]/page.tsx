@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
 import { CampoRecibido } from "@/components/admin/CampoRecibido";
+import { CampoEntrega } from "@/components/admin/CampoEntrega";
 import { CampoPara } from "@/components/admin/CampoPara";
 import { HistorialMantencion } from "@/components/admin/HistorialMantencion";
 import { Icono } from "@/components/admin/Icono";
@@ -127,9 +128,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
           <Campo etiqueta="Inicio">
             <input name="inicio" type="date" defaultValue={proyecto?.inicio ?? ""} className={entrada} />
           </Campo>
-          <Campo etiqueta="Entrega">
-            <input name="entrega" type="date" defaultValue={proyecto?.entrega ?? ""} className={entrada} />
-          </Campo>
+          <CampoEntrega inicial={proyecto?.entrega ?? null} clase={entrada} />
           <fieldset className="min-w-0 rounded-2xl border border-line bg-bg/40 p-4 sm:col-span-2">
             <legend className="px-1 text-sm font-medium text-[#c9c9cf]">Mantención mensual</legend>
             <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">

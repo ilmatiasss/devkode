@@ -158,7 +158,11 @@ export default async function Resumen() {
                           <Icono nombre="calendario" className="size-3.5" />
                           {dias < 0 ? `Entrega atrasada ${-dias} d` : dias === 0 ? "Se entrega hoy" : `Entrega en ${dias} d · ${fecha(p.entrega)}`}
                         </p>
-                      ) : null}
+                      ) : (
+                        <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+                          <Icono nombre="calendario" className="size-3.5" /> Sin fecha de entrega
+                        </p>
+                      )}
                     </Link>
                   </li>
                 );
