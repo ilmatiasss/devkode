@@ -12,11 +12,13 @@ export function CampoReparto({
   inicial,
   textoBase,
   etiqueta = "Reparto entre socios",
+  mostrarGeneral = false,
 }: {
   socios: Socio[];
   inicial: Record<string, number> | null;
   textoBase: string;
   etiqueta?: string;
+  mostrarGeneral?: boolean;
 }) {
   const [personalizado, setPersonalizado] = useState(Boolean(inicial));
   const [abierto, setAbierto] = useState(Boolean(inicial));
@@ -40,6 +42,7 @@ export function CampoReparto({
         <input type="hidden" name="reparto_modo" value="base" />
         <span className="text-muted">
           Reparto: <span className="text-fg">{textoBase.toLowerCase()}</span>
+          {mostrarGeneral ? <span className="text-fg"> ({socios.map((s) => `${s.nombre.split(" ")[0]} ${s.porcentaje}%`).join(" · ")})</span> : null}
         </span>
         <button type="button" onClick={() => setAbierto(true)} aria-expanded={false} className="text-xs text-accent-soft hover:text-fg">
           Opciones avanzadas

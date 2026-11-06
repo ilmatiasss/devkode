@@ -64,6 +64,7 @@ export const MENSAJES = {
   claveDistinta: "Las contraseñas nuevas no coinciden",
   mantencionRepetida: "Esa mantención ya estaba registrada para ese mes",
   transferencia: "Quien entrega y quien recibe deben ser distintos",
+  division: "Lo que llegó a cada cuenta debe sumar el monto total",
 } as const;
 export type CodigoError = keyof typeof MENSAJES;
 export const mensajeDe = (codigo: unknown) => (typeof codigo === "string" && codigo in MENSAJES ? MENSAJES[codigo as CodigoError] : null);

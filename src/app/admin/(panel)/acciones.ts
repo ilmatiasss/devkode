@@ -44,6 +44,20 @@ async function usuarioODelaEmpresa(id: number | null) {
   return fila ? id : null;
 }
 
+// Pago que llegó dividido entre varias cuentas (componente CampoRecibido). Null = llegó a una sola.
+async function leerDivision(fd: FormData, monto: number, volver: string) {
+  if (fd.get("recibido_por") !== "dividido") return null;
+  const usuarios = await db()<{ id: number }[]>`select id from usuarios order by id`;
+  const detalle: Record<string, number> = {};
+  for (const clave of [...usuarios.map((u) => String(u.id)), "empresa"]) {
+    const valor = String(fd.get(`recibido_${clave}`) ?? "").replace(/[$\s.]/g, "");
+    if (valor && !/^\d{1,10}$/.test(valor)) volverCon(volver, "monto");
+    if (Number(valor) > 0) detalle[clave] = Number(valor);
+  }
+  if (Object.values(detalle).reduce((a, b) => a + b, 0) !== monto) volverCon(volver, "division");
+  return detalle;
+}
+
 // Reparto personalizado del formulario (componente CampoReparto). Null = usar el general/del proyecto.
 async function leerReparto(fd: FormData, volver: string) {
   if (fd.get("reparto_modo") !== "personalizado") return null;
@@ -152,10 +166,12 @@ export async function guardarIngreso(fd: FormData) {
     `/admin/ingresos/${id ?? "nuevo"}`,
   );
   datos.recibido_por = await usuarioODelaEmpresa(datos.recibido_por);
+  const recibido_detalle = await leerDivision(fd, datos.monto, `/admin/ingresos/${id ?? "nuevo"}`);
+  if (recibido_detalle) datos.recibido_por = null;
   const reparto = await leerReparto(fd, `/admin/ingresos/${id ?? "nuevo"}`);
   const mant_mes = datos.proyecto_id ? mesValido(fd.get("mant_mes")) : null;
   const sql = db();
-  const fila = { ...datos, mant_mes, reparto: reparto ? sql.json(reparto) : null };
+  const fila = { ...datos, mant_mes, reparto: reparto ? sql.json(reparto) : null, recibido_detalle: recibido_detalle ? sql.json(recibido_detalle) : null };
   try {
     if (id) await sql`update ingresos set ${sql(fila)} where id = ${id}`;
     else await sql`insert into ingresos ${sql(fila)}`;
@@ -279,14 +295,15 @@ export async function registrarMantencion(fd: FormData) {
   if (!id || !mes) volverCon(volver, "faltan");
   const monto = validar(() => pesosDe(fd, "monto", 1), volver);
   const fecha = validar(() => fechaDe(fd, "fecha", false), volver) ?? hoy();
-  const recibido = await usuarioODelaEmpresa(idDe(fd, "recibido_por"));
+  const dividido = await leerDivision(fd, monto, volver);
+  const recibido = dividido ? null : await usuarioODelaEmpresa(idDe(fd, "recibido_por"));
 
   const sql = db();
   const [p] = await sql<{ nombre: string }[]>`select nombre from proyectos where id = ${id}`;
   if (!p) volverCon(volver, "faltan");
   try {
-    await sql`insert into ingresos (fecha, descripcion, monto, proyecto_id, recibido_por, mant_mes)
-      values (${fecha}, ${`Mantención ${nombreMes(mes)} · ${p.nombre}`}, ${monto}, ${id}, ${recibido}, ${mes})`;
+    await sql`insert into ingresos (fecha, descripcion, monto, proyecto_id, recibido_por, recibido_detalle, mant_mes)
+      values (${fecha}, ${`Mantención ${nombreMes(mes)} · ${p.nombre}`}, ${monto}, ${id}, ${recibido}, ${dividido ? sql.json(dividido) : null}, ${mes})`;
   } catch (error) {
     if ((error as { code?: string }).code === "23505") volverCon(volver, "mantencionRepetida");
     throw error;

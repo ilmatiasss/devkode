@@ -9,7 +9,7 @@ import { clp, esMes, mesActual, moverMes, nombreMes } from "@/lib/admin/formato"
 
 export const metadata: Metadata = { title: "Ingresos" };
 
-type Fila = { id: number; fecha: string; descripcion: string; monto: number; detalle: string | null; persona: string | null };
+type Fila = { id: number; fecha: string; descripcion: string; monto: number; detalle: string | null; persona: string | null; en_empresa: number };
 
 export default async function Ingresos({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const sesion = sesionEnParalelo();
@@ -18,14 +18,17 @@ export default async function Ingresos({ searchParams }: { searchParams: Promise
   const sql = db();
   const [filas, [anterior]] = await Promise.all([
     sql<Fila[]>`
-      select i.id, i.fecha, i.descripcion, i.monto, p.nombre as detalle, u.nombre as persona
+      select i.id, i.fecha, i.descripcion, i.monto, p.nombre as detalle,
+        case when i.recibido_detalle is not null then 'Dividido entre cuentas' else u.nombre end as persona,
+        case when i.recibido_detalle is not null then coalesce((i.recibido_detalle->>'empresa')::int, 0)
+             when i.recibido_por is null then i.monto else 0 end as en_empresa
       from ingresos i left join proyectos p on p.id = i.proyecto_id left join usuarios u on u.id = i.recibido_por
       where i.fecha >= ${`${mes}-01`} and i.fecha < ${`${moverMes(mes, 1)}-01`}
       order by i.fecha desc, i.id desc`,
     sql<{ total: number }[]>`select coalesce(sum(monto), 0)::bigint as total from ingresos where fecha >= ${`${moverMes(mes, -1)}-01`} and fecha < ${`${mes}-01`}`,
   ]);
   const total = filas.reduce((s, f) => s + f.monto, 0);
-  const enEmpresa = filas.filter((f) => !f.persona).reduce((s, f) => s + f.monto, 0);
+  const enEmpresa = filas.reduce((s, f) => s + f.en_empresa, 0);
 
   await sesion;
   return (

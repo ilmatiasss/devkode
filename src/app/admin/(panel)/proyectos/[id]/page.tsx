@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
+import { CampoRecibido } from "@/components/admin/CampoRecibido";
 import { CampoReparto } from "@/components/admin/CampoReparto";
 import { HistorialMantencion } from "@/components/admin/HistorialMantencion";
-import { Selector } from "@/components/admin/Selector";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { BarraGuardar, botonPeligro, botonPrimario, Campo, Encabezado, entrada, Etiqueta, Kpi, Progreso, tarjeta, ZonaPeligro } from "@/components/admin/ui";
@@ -150,7 +150,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
             </div>
           </fieldset>
           <div className="sm:col-span-2">
-            <CampoReparto socios={usuarios} inicial={proyecto?.reparto ?? null} textoBase="Porcentajes generales" etiqueta="Cómo se reparte este proyecto" />
+            <CampoReparto socios={usuarios} inicial={proyecto?.reparto ?? null} textoBase="Porcentajes generales" etiqueta="Cómo se reparte este proyecto" mostrarGeneral />
             <p className="mt-2 text-xs text-muted">Se aplica a todos sus pagos y gastos, salvo que uno tenga su propio reparto.</p>
           </div>
           <Campo etiqueta="Notas" className="sm:col-span-2">
@@ -193,12 +193,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
                         <InputMonto name="monto" required defaultValue={proyecto.mant_monto} />
                       </Campo>
                     </div>
-                    <Selector
-                      name="recibido_por"
-                      etiqueta="¿Dónde llegó?"
-                      inicial=""
-                      opciones={[{ valor: "", texto: "Empresa" }, ...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0] }))]}
-                    />
+                    <CampoRecibido socios={usuarios} inicial={null} detalle={null} />
                     <button type="submit" className={`${botonPrimario} w-full`}>
                       <Icono nombre="check" className="size-4" /> Registrar mantención
                     </button>

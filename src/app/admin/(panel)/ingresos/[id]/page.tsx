@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
+import { CampoRecibido } from "@/components/admin/CampoRecibido";
 import { CampoReparto } from "@/components/admin/CampoReparto";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
-import { Selector } from "@/components/admin/Selector";
 import { BarraGuardar, botonPeligro, Campo, Encabezado, entrada, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
 import { listaProyectos, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
@@ -14,7 +14,7 @@ import { eliminarIngreso, guardarIngreso } from "../../acciones";
 
 export const metadata: Metadata = { title: "Ingreso" };
 
-type Ingreso = { id: number; fecha: string; descripcion: string; monto: number; proyecto_id: number | null; recibido_por: number | null; notas: string | null; mant_mes: string | null; reparto: Reparto };
+type Ingreso = { id: number; fecha: string; descripcion: string; monto: number; proyecto_id: number | null; recibido_por: number | null; notas: string | null; mant_mes: string | null; reparto: Reparto; recibido_detalle: Record<string, number> | null };
 
 export default async function FichaIngreso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
   const { id } = await params;
@@ -59,13 +59,7 @@ export default async function FichaIngreso({ params, searchParams }: { params: P
           </select>
         </Campo>
         <div className="sm:col-span-2">
-          <Selector
-            name="recibido_por"
-            etiqueta="¿Dónde llegó el pago?"
-            inicial={String(ingreso?.recibido_por ?? "")}
-            opciones={[{ valor: "", texto: "Cuenta de la empresa" }, ...usuarios.map((u) => ({ valor: String(u.id), texto: `Cuenta de ${u.nombre.split(" ")[0]}` }))]}
-          />
-          <p className="mt-2 text-xs text-muted">Si llegó a la cuenta de uno de ustedes, se considera en el reparto.</p>
+          <CampoRecibido socios={usuarios} inicial={ingreso?.recibido_por ?? null} detalle={ingreso?.recibido_detalle ?? null} />
         </div>
         <Campo etiqueta="¿Es una mantención mensual? (opcional)" ayuda="Elige el mes que paga y quedará marcado como cobrado en Mantenciones. Requiere proyecto.">
           <input name="mant_mes" type="month" defaultValue={ingreso?.mant_mes ?? ""} className={entrada} />

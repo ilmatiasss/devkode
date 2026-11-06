@@ -58,13 +58,21 @@ export const mensualEnPesos = (s: Pick<Servicio, "costo" | "moneda" | "ciclo">, 
 export async function resumenPeriodo(desde: string | null, hasta: string | null) {
   const sql = db();
   const filtroI = desde && hasta ? sql`where fecha >= ${desde} and fecha < ${hasta}` : sql``;
+  const enRango = desde && hasta ? sql`fecha >= ${desde} and fecha < ${hasta}` : sql`true`;
   const [[totales], porPersonaI, porPersonaG] = await Promise.all([
     sql<{ ingresos: number; gastos: number }[]>`
       select
         (select coalesce(sum(monto), 0)::bigint from ingresos ${filtroI}) as ingresos,
         (select coalesce(sum(monto), 0)::bigint from gastos ${filtroI}) as gastos`,
     sql<{ persona: number | null; total: number }[]>`
-      select recibido_por as persona, sum(monto)::bigint as total from ingresos ${filtroI} group by recibido_por`,
+      select persona, sum(total)::bigint as total from (
+        select recibido_por as persona, monto as total from ingresos where recibido_detalle is null and ${enRango}
+        union all
+        -- Pagos que llegaron repartidos entre varias cuentas
+        select nullif(d.key, 'empresa')::int as persona, d.value::bigint as total
+        from ingresos i cross join lateral jsonb_each_text(i.recibido_detalle) d
+        where i.recibido_detalle is not null and ${enRango}
+      ) x group by persona`,
     sql<{ persona: number | null; total: number }[]>`
       select pagado_por as persona, sum(monto)::bigint as total from gastos ${filtroI} group by pagado_por`,
   ]);
@@ -96,21 +104,42 @@ export function porcentajeDe(usuario: Persona, propio: Reparto, delProyecto: Rep
   return usuario.porcentaje;
 }
 
-type MovReparto = { tipo: "ingreso" | "gasto"; monto: number; reparto: Reparto; reparto_proyecto: Reparto; proyecto_id: number | null; proyecto: string | null };
+type MovReparto = {
+  tipo: "ingreso" | "gasto";
+  id: number;
+  fecha: string;
+  descripcion: string;
+  monto: number;
+  reparto: Reparto;
+  reparto_proyecto: Reparto;
+  proyecto_id: number | null;
+  proyecto: string | null;
+  persona: number | null; // quién lo recibió o pagó; null = cuenta de la empresa
+  dividido: Record<string, number> | null;
+};
+
+// Un movimiento dentro del detalle de Reparto, con el porcentaje que se le aplicó a cada socio
+export type MovimientoReparto = Omit<MovReparto, "reparto" | "reparto_proyecto"> & { porcentajes: number[]; propio: boolean };
 
 // Cuánto le corresponde a cada socio en un período, y el detalle por proyecto
 export async function calcularReparto(desde: string | null, hasta: string | null, usuarios: Persona[]) {
   const sql = db();
   const filtro = desde && hasta ? sql`where m.fecha >= ${desde} and m.fecha < ${hasta}` : sql``;
   const movs = await sql<MovReparto[]>`
-    select 'ingreso' as tipo, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto
+    select 'ingreso' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto,
+      m.recibido_por as persona, m.recibido_detalle as dividido
     from ingresos m left join proyectos p on p.id = m.proyecto_id ${filtro}
     union all
-    select 'gasto' as tipo, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto
-    from gastos m left join proyectos p on p.id = m.proyecto_id ${filtro}`;
+    select 'gasto' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto,
+      m.pagado_por as persona, null as dividido
+    from gastos m left join proyectos p on p.id = m.proyecto_id ${filtro}
+    order by fecha desc, id desc`;
 
   const corresponde = new Map(usuarios.map((u) => [u.id, 0]));
-  const porProyecto = new Map<string, { nombre: string; id: number | null; utilidad: number; partes: Map<number, number>; personalizado: boolean }>();
+  const porProyecto = new Map<
+    string,
+    { nombre: string; id: number | null; utilidad: number; partes: Map<number, number>; personalizado: boolean; reparto: Reparto; movimientos: MovimientoReparto[] }
+  >();
   for (const m of movs) {
     const signo = m.tipo === "ingreso" ? 1 : -1;
     const clave = m.proyecto_id === null ? "general" : String(m.proyecto_id);
@@ -120,7 +149,11 @@ export async function calcularReparto(desde: string | null, hasta: string | null
       utilidad: 0,
       partes: new Map(usuarios.map((u) => [u.id, 0])),
       personalizado: false,
+      reparto: repartoValido(m.reparto_proyecto) ? m.reparto_proyecto : null,
+      movimientos: [],
     };
+    const { reparto, reparto_proyecto, ...resto } = m;
+    grupo.movimientos.push({ ...resto, porcentajes: usuarios.map((u) => porcentajeDe(u, reparto, reparto_proyecto)), propio: repartoValido(reparto) });
     grupo.utilidad += signo * m.monto;
     if (repartoValido(m.reparto) || repartoValido(m.reparto_proyecto)) grupo.personalizado = true;
     for (const u of usuarios) {

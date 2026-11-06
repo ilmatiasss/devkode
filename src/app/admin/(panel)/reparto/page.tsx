@@ -40,7 +40,7 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
   const de = (lista: { persona: number | null; total: number }[], persona: number | null) => lista.find((f) => f.persona === persona)?.total ?? 0;
   const entregado = (persona: number | null) => transferencias.filter((t) => t.de_usuario === persona).reduce((s, t) => s + t.monto, 0);
   const recibido = (persona: number | null) => transferencias.filter((t) => t.a_usuario === persona).reduce((s, t) => s + t.monto, 0);
-  const nombreDe = (id: number | null) => (id === null ? "Empresa" : (usuarios.find((u) => u.id === id)?.nombre.split(" ")[0] ?? "Ex socio"));
+  const nombreDe = (id: number | null) => (id === null ? "la empresa" : (usuarios.find((u) => u.id === id)?.nombre.split(" ")[0] ?? "Ex socio"));
 
   const socios = usuarios.map((u) => {
     // Considera los porcentajes propios de cada proyecto, ingreso o gasto
@@ -64,6 +64,7 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
   // Si se mira un mes pasado, la transferencia por defecto queda en el último día de ese mes
   const fechaSugerida =
     periodo.tipo === "mes" && periodo.mes < mesActual() ? new Date(Date.parse(`${moverMes(periodo.mes, 1)}-01`) - 86_400_000).toISOString().slice(0, 10) : hoy();
+  const porcentajesTexto = (lista: number[]) => (lista.length === 2 ? `${lista[0]}/${lista[1]}` : lista.map((n) => `${n}%`).join(" · "));
   const cuentas = [...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0], color: colorDe(u.nombre) })), { valor: "empresa", texto: "Cuenta de la empresa" }];
 
   const anioActual = Number(mesActual().slice(0, 4));
@@ -230,9 +231,9 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                   <li key={t.id} className="flex items-center gap-3 py-3 text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="flex flex-wrap items-center gap-1.5">
-                        <span>{nombreDe(t.de_usuario)}</span>
+                        <span className="inline-block first-letter:uppercase">{nombreDe(t.de_usuario)}</span>
                         <Icono nombre="adelante" className="size-3.5 text-muted" />
-                        <span>{nombreDe(t.a_usuario)}</span>
+                        <span className="inline-block first-letter:uppercase">{nombreDe(t.a_usuario)}</span>
                       </p>
                       <p className="truncate text-xs text-muted">
                         {fecha(t.fecha)}
@@ -260,29 +261,71 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
 
       {calculo.porProyecto.length ? (
         <section className={`${tarjeta} aparecer mt-10 p-5`}>
-          <h2 className="mb-1 font-medium">Por proyecto</h2>
-          <p className="mb-4 text-sm text-muted">Cuánto dejó cada proyecto en el período y cuánto le toca a cada uno.</p>
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="mb-1 font-medium">Por proyecto</h2>
+              <p className="text-sm text-muted">Toca un proyecto para ver de dónde sale cada número y editarlo.</p>
+            </div>
+            <Link href="/admin/ajustes" className="rounded-xl border border-line px-3 py-2 text-xs text-muted hover:border-accent/50 hover:text-fg">
+              Porcentajes generales: {usuarios.map((u) => `${u.nombre.split(" ")[0]} ${u.porcentaje}%`).join(" · ")}
+            </Link>
+          </div>
           <ul className="divide-y divide-line">
             {calculo.porProyecto.map((g) => (
-              <li key={g.id ?? "general"} className="py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  {g.id ? (
-                    <Link href={`/admin/proyectos/${g.id}`} className="font-medium hover:text-accent-soft">
-                      {g.nombre}
-                    </Link>
-                  ) : (
-                    <span className="font-medium text-muted">{g.nombre}</span>
-                  )}
-                  <span className={`tabular-nums ${g.utilidad < 0 ? "text-[#ff8fa3]" : ""}`}>{clp(g.utilidad)}</span>
-                </div>
-                <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-                  {usuarios.map((u) => (
-                    <span key={u.id}>
-                      {u.nombre.split(" ")[0]}: <span className="text-fg tabular-nums">{clp(g.partes.get(u.id) ?? 0)}</span>
-                    </span>
-                  ))}
-                  {g.personalizado ? <span className="text-accent-soft">reparto propio</span> : null}
-                </p>
+              <li key={g.id ?? "general"}>
+                <details className="group py-3">
+                  <summary className="cursor-pointer list-none rounded-xl [&::-webkit-details-marker]:hidden">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className={`flex items-center gap-2 font-medium ${g.id ? "" : "text-muted"}`}>
+                        <Icono nombre="adelante" className="size-3.5 text-muted transition group-open:rotate-90" />
+                        {g.nombre}
+                      </span>
+                      <span className={`tabular-nums ${g.utilidad < 0 ? "text-[#ff8fa3]" : ""}`}>{clp(g.utilidad)}</span>
+                    </div>
+                    <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 pl-5.5 text-xs text-muted">
+                      {usuarios.map((u) => (
+                        <span key={u.id}>
+                          {u.nombre.split(" ")[0]}: <span className="text-fg tabular-nums">{clp(g.partes.get(u.id) ?? 0)}</span>
+                        </span>
+                      ))}
+                      <span className={g.personalizado ? "text-accent-soft" : ""}>
+                        {g.reparto ? `reparto del proyecto ${porcentajesTexto(usuarios.map((u) => Number(g.reparto?.[String(u.id)] ?? 0)))}` : g.personalizado ? "algunos con reparto propio" : "reparto general"}
+                      </span>
+                    </p>
+                  </summary>
+                  <div className="mt-3 ml-5.5 rounded-xl border border-line bg-bg/40">
+                    <ul className="divide-y divide-line text-sm">
+                      {g.movimientos.map((m) => (
+                        <li key={`${m.tipo}-${m.id}`}>
+                          <Link href={`/admin/${m.tipo === "ingreso" ? "ingresos" : "gastos"}/${m.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.03]">
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate">{m.descripcion}</span>
+                              <span className="block text-xs text-muted">
+                                {fecha(m.fecha)} · {m.tipo === "ingreso" ? "llegó a " : "pagó "}
+                                {m.dividido
+                                  ? Object.entries(m.dividido)
+                                      .map(([k, v]) => `${k === "empresa" ? "Empresa" : nombreDe(Number(k))} ${clp(v)}`)
+                                      .join(" + ")
+                                  : nombreDe(m.persona)}{" "}
+                                · {porcentajesTexto(m.porcentajes)}
+                                {m.propio ? " (propio)" : ""}
+                              </span>
+                            </span>
+                            <span className={`tabular-nums ${m.tipo === "ingreso" ? "text-[#7ee2a0]" : "text-[#ff8fa3]"}`}>
+                              {m.tipo === "ingreso" ? "+" : "−"} {clp(m.monto)}
+                            </span>
+                            <Icono nombre="lapiz" className="size-3.5 shrink-0 text-muted" />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    {g.id ? (
+                      <Link href={`/admin/proyectos/${g.id}`} className="flex items-center justify-center gap-1.5 border-t border-line px-3 py-2.5 text-xs text-accent-soft hover:text-fg">
+                        Cambiar el reparto de {g.nombre} <Icono nombre="adelante" className="size-3.5" />
+                      </Link>
+                    ) : null}
+                  </div>
+                </details>
               </li>
             ))}
           </ul>

@@ -136,8 +136,11 @@ create table if not exists transferencias (
 );
 create index if not exists transferencias_fecha on transferencias(fecha);
 
-insert into ajustes (clave, valor) values ('esquema', '3') on conflict (clave) do update set valor = excluded.valor;
+-- Versión 4: un pago que llegó repartido entre varias cuentas: {"<id usuario>" | "empresa": monto}
+alter table ingresos add column if not exists recibido_detalle jsonb;
+
+insert into ajustes (clave, valor) values ('esquema', '4') on conflict (clave) do update set valor = excluded.valor;
 `;
 
 // Se sube cada vez que el esquema cambia: el panel lo aplica solo la primera vez que lo necesita
-export const VERSION_ESQUEMA = "3";
+export const VERSION_ESQUEMA = "4";
