@@ -1,5 +1,6 @@
 // Todo el contenido de la página vive aquí: edita este archivo y se actualiza el sitio.
 import type { StaticImageData } from "next/image";
+import { servicios } from "./servicios";
 import fruterraLogo from "@/assets/logos/fruterra.webp";
 import rutafoodLogo from "@/assets/logos/rutafood.webp";
 import reycarLogo from "@/assets/logos/reycar.webp";
@@ -60,30 +61,8 @@ export const nav = [
   { label: "Cómo trabajamos", href: "#proceso" },
 ];
 
-export const services: { title: string; description: string; tags?: string[] }[] = [
-  {
-    title: "Tiendas online",
-    description:
-      "Catálogo, carrito, pagos y despacho, más un panel para que tú mismo cargues productos y revises pedidos, sin tener que llamarnos cada vez.",
-    tags: ["Webpay", "Mercado Pago", "Flow"],
-  },
-  {
-    title: "Landing pages",
-    description: "Una página con un solo objetivo: que te escriban, que se inscriban o que compren.",
-  },
-  {
-    title: "Webs corporativas",
-    description: "Quiénes son, qué hacen y cómo contactarlos, bien contado y fácil de actualizar.",
-  },
-  {
-    title: "Aplicaciones web",
-    description: "Sistemas con usuarios, permisos y paneles que tu equipo usa desde el navegador.",
-  },
-  {
-    title: "Software a medida",
-    description: "Cuando ninguna herramienta del mercado calza con tu forma de trabajar, la construimos.",
-  },
-];
+// Los servicios (y el contenido de sus páginas) viven en ./servicios.ts
+export const services = servicios.map((s) => ({ slug: s.slug, title: s.titulo, description: s.resumen, tags: s.etiquetas }));
 
 export type Project = {
   name: string;
