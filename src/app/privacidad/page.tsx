@@ -43,6 +43,11 @@ export default function Privacidad() {
           No te pedimos RUT, dirección ni ningún dato sensible. Te pedimos que tampoco los incluyas en el mensaje.
         </p>
         <p>
+          Si llegamos a trabajar juntos, además registramos en nuestro sistema interno de gestión los datos necesarios para
+          llevar el proyecto: el nombre de tu empresa o el tuyo, la persona de contacto, su teléfono y correo, el RUT si
+          hace falta para facturar, y la información del proyecto y sus pagos.
+        </p>
+        <p>
           Además, como cualquier sitio, el proveedor donde está alojada la página (Vercel) registra datos técnicos de cada
           visita, como la dirección IP, el navegador y la hora, para mantener el sitio seguro y funcionando. Nosotros no
           usamos esos datos para identificarte ni para hacer perfiles. Para frenar el abuso del formulario, contamos los
@@ -54,7 +59,7 @@ export default function Privacidad() {
         <p>Para que sepas exactamente a qué atenerte, esto es lo que este sitio no hace:</p>
         <List
           items={[
-            "No usa cookies de ningún tipo, ni propias ni de terceros.",
+            "No usa cookies en las páginas públicas, ni propias ni de terceros. La única cookie es técnica y solo existe en nuestra área privada de administración, que usamos nosotros para iniciar sesión.",
             "No guarda información en el almacenamiento local de tu navegador.",
             "No usa herramientas de analítica, medición de audiencia ni perfilado.",
             "No incluye píxeles de seguimiento ni redes publicitarias.",
@@ -80,11 +85,12 @@ export default function Privacidad() {
       </Block>
 
       <Block title="5. Con quién los compartimos">
-        <p>Solo con los proveedores que necesitamos para recibir tu mensaje, y que lo tratan por cuenta nuestra:</p>
+        <p>Solo con los proveedores que necesitamos para operar, y que tratan los datos por cuenta nuestra:</p>
         <List
           items={[
-            "Vercel Inc.: aloja este sitio y ejecuta el formulario. El mensaje pasa por sus servidores, pero no queda guardado en ninguna base de datos nuestra.",
-            "Spacemail: el servicio de correo donde recibimos tu mensaje y guardamos las conversaciones.",
+            "Vercel Inc.: aloja este sitio y ejecuta el formulario. Tu mensaje pasa por sus servidores para enviarse por correo, pero no queda guardado en ninguna base de datos.",
+            "Google (Google Workspace): nuestro correo empresarial. Ahí recibimos tu mensaje y guardamos las conversaciones contigo.",
+            "Neon: la base de datos de nuestro sistema interno de gestión. Solo la usamos para puntos específicos de la relación con clientes, como sus datos de contacto, los proyectos, las mantenciones y los pagos. Los mensajes del formulario no se guardan ahí, y si no llegamos a trabajar juntos tus datos no se registran en ella.",
           ]}
         />
         <p>No cedemos tus datos a nadie más, salvo que una autoridad competente nos lo exija por ley.</p>
@@ -112,8 +118,9 @@ export default function Privacidad() {
         <p>
           La página funciona solo con conexión cifrada (HTTPS) y con cabeceras de seguridad que impiden que otros sitios la
           incrusten o le inyecten contenido. El formulario valida y limpia lo que recibe, rechaza envíos que no vengan de
-          esta misma página y no revela detalles internos si algo falla. El acceso al buzón donde llegan los mensajes está
-          protegido con contraseña y solo lo usamos nosotros.
+          esta misma página y no revela detalles internos si algo falla. El acceso al correo donde llegan los mensajes está
+          protegido con contraseña y solo lo usamos nosotros. Nuestro sistema interno de gestión solo es accesible para los
+          socios de {site.name}, con contraseña, sesiones cifradas y bloqueo ante intentos fallidos.
         </p>
         <p>
           Si ocurriera una vulneración de seguridad que afecte tus datos y te ponga en riesgo, la informaremos a la Agencia

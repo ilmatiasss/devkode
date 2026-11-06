@@ -5,8 +5,8 @@ export const runtime = "nodejs";
 
 // Variables de entorno (se configuran en Vercel → Settings → Environment Variables):
 //   SMTP_USER  correo desde el que se envía (ej. contacto@devkode.cl)
-//   SMTP_PASS  contraseña de ese buzón
-//   SMTP_HOST  opcional, por defecto mail.spacemail.com
+//   SMTP_PASS  contraseña de aplicación de Google para ese buzón (no la contraseña normal)
+//   SMTP_HOST  opcional, por defecto smtp.gmail.com (Google Workspace)
 //   SMTP_PORT  opcional, por defecto 465
 //   CONTACT_TO opcional, a quién llegan las cotizaciones (por defecto, el correo de contacto)
 
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
   }
 
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST ?? "mail.spacemail.com",
+    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT ?? 465),
     secure: (process.env.SMTP_SECURE ?? "true") === "true",
     auth: { user, pass },
