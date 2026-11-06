@@ -111,6 +111,17 @@ export function partesIguales(monto: number, usuarios: { id: number }[]): Partes
 export const partesDe = (guardadas: Partes | null, monto: number, usuarios: { id: number }[]): Partes =>
   guardadas && Object.keys(guardadas).length ? guardadas : partesIguales(monto, usuarios);
 
+// Reparte un total en la misma proporción que unas partes (lo que sobra del redondeo va a la mayor)
+export function escalar(partes: Partes, total: number): Partes {
+  const base = Object.values(partes).reduce((a, b) => a + b, 0);
+  const claves = Object.keys(partes);
+  if (!base || !claves.length) return {};
+  const res = Object.fromEntries(claves.map((k) => [k, Math.floor((partes[k] * total) / base)]));
+  const mayor = claves.reduce((a, b) => (partes[b] > partes[a] ? b : a));
+  res[mayor] += total - Object.values(res).reduce((a, b) => a + b, 0);
+  return res;
+}
+
 type MovReparto = {
   tipo: "ingreso" | "gasto";
   id: number;
@@ -122,45 +133,106 @@ type MovReparto = {
   persona: number | null; // a quién llegó o quién pagó; null = cuenta de la empresa
   dividido: Partes | null; // ingreso que llegó repartido entre varias cuentas
   partes: Partes | null;
+  mant_mes: string | null; // gasto pagado con la mantención de ese mes
+  // La mantención con que se pagó el gasto (si ya está registrada)
+  mi_monto: number | null;
+  mi_para: Partes | null;
+  mi_persona: number | null;
+  mi_dividido: Partes | null;
 };
 
-export type MovimientoReparto = Omit<MovReparto, "partes"> & { partes: Partes; iguales: boolean };
+export type MovimientoReparto = Omit<MovReparto, "partes" | "mi_monto" | "mi_para" | "mi_persona" | "mi_dividido"> & {
+  partes: Partes;
+  iguales: boolean;
+  cuentas: Partes; // a qué cuentas llegó (ingreso) o de qué cuentas salió (gasto); "empresa" = la empresa
+  sinMantencion: boolean; // pagado con una mantención que aún no se registra
+};
 
-// Cuánto le toca a cada socio en un período (lo que es para él menos lo que pone en gastos), por proyecto
+// De qué cuentas llegó o salió la plata: {"<id>" | "empresa": pesos}
+const cuentasDe = (persona: number | null, dividido: Partes | null, monto: number): Partes =>
+  dividido && Object.keys(dividido).length ? dividido : { [persona === null ? "empresa" : String(persona)]: monto };
+
+// Cuánto le toca a cada socio en un período (lo que es para él menos lo que pone en gastos), cuánto
+// llegó o salió de cada cuenta, y el detalle por proyecto
 export async function calcularReparto(desde: string | null, hasta: string | null, usuarios: Persona[]) {
   const sql = db();
   const filtro = desde && hasta ? sql`where m.fecha >= ${desde} and m.fecha < ${hasta}` : sql``;
   const movs = await sql<MovReparto[]>`
     select 'ingreso' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.proyecto_id, p.nombre as proyecto,
-      m.recibido_por as persona, m.recibido_detalle as dividido, m.para as partes
+      m.recibido_por as persona, m.recibido_detalle as dividido, m.para as partes, null as mant_mes,
+      null::int as mi_monto, null::jsonb as mi_para, null::int as mi_persona, null::jsonb as mi_dividido
     from ingresos m left join proyectos p on p.id = m.proyecto_id ${filtro}
     union all
     select 'gasto' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.proyecto_id, p.nombre as proyecto,
-      m.pagado_por as persona, null as dividido, m.pone as partes
-    from gastos m left join proyectos p on p.id = m.proyecto_id ${filtro}
+      m.pagado_por as persona, null as dividido, m.pone as partes, m.mant_mes,
+      mi.monto, mi.para, mi.recibido_por, mi.recibido_detalle
+    from gastos m left join proyectos p on p.id = m.proyecto_id
+      left join ingresos mi on m.mant_mes is not null and mi.proyecto_id = m.proyecto_id and mi.mant_mes = m.mant_mes
+    ${filtro}
     order by fecha desc, id desc`;
 
   const leToca = new Map(usuarios.map((u) => [u.id, 0]));
+  const entro = new Map<string, number>(); // lo que llegó a cada cuenta ("<id>" o "empresa")
+  const salio = new Map<string, number>(); // lo que se pagó desde cada cuenta
   const porProyecto = new Map<string, { nombre: string; id: number | null; utilidad: number; partes: Map<number, number>; movimientos: MovimientoReparto[] }>();
   for (const m of movs) {
     const signo = m.tipo === "ingreso" ? 1 : -1;
     const clave = m.proyecto_id === null ? "general" : String(m.proyecto_id);
     const grupo = porProyecto.get(clave) ?? { nombre: m.proyecto ?? "Sin proyecto", id: m.proyecto_id, utilidad: 0, partes: new Map(usuarios.map((u) => [u.id, 0])), movimientos: [] };
-    const partes = partesDe(m.partes, m.monto, usuarios);
-    grupo.movimientos.push({ ...m, partes, iguales: !m.partes });
+
+    let partes: Partes;
+    let deCuentas: Partes;
+    let sinMantencion = false;
+    if (m.mant_mes) {
+      // Pagado con la plata de la mantención: se descuenta en la misma proporción en que se reparte
+      // esa mantención, y sale de la(s) cuenta(s) donde llegó
+      if (m.mi_monto) {
+        partes = escalar(partesDe(m.mi_para, m.mi_monto, usuarios), m.monto);
+        deCuentas = escalar(cuentasDe(m.mi_persona, m.mi_dividido, m.mi_monto), m.monto);
+      } else {
+        partes = partesIguales(m.monto, usuarios);
+        deCuentas = { empresa: m.monto };
+        sinMantencion = true;
+      }
+    } else {
+      partes = partesDe(m.partes, m.monto, usuarios);
+      deCuentas = cuentasDe(m.persona, m.dividido, m.monto);
+    }
+    const { mi_monto, mi_para, mi_persona, mi_dividido, ...resto } = m;
+    grupo.movimientos.push({ ...resto, partes, iguales: !m.partes && !m.mant_mes, cuentas: deCuentas, sinMantencion });
     grupo.utilidad += signo * m.monto;
     for (const u of usuarios) {
       const parte = signo * Number(partes[String(u.id)] ?? 0);
       leToca.set(u.id, leToca.get(u.id)! + parte);
       grupo.partes.set(u.id, grupo.partes.get(u.id)! + parte);
     }
+    const destino = m.tipo === "ingreso" ? entro : salio;
+    for (const [k, v] of Object.entries(deCuentas)) destino.set(k, (destino.get(k) ?? 0) + v);
     porProyecto.set(clave, grupo);
   }
   return {
     leToca,
+    entro,
+    salio,
     porProyecto: [...porProyecto.values()].sort((a, b) => (a.id === null ? 1 : b.id === null ? -1 : b.utilidad - a.utilidad)),
   };
 }
+
+// Mantención de cada mes: lo cobrado, los servicios pagados con ella y lo que queda para repartir
+export type MesMantencion = { proyecto_id: number; mes: string; cobrado: number | null; para: Partes | null; servicios: { id: number; descripcion: string; monto: number }[] };
+export const mesesMantencion = (proyectoId?: number) => {
+  const sql = db();
+  const filtro = proyectoId ? sql`where m.proyecto_id = ${proyectoId}` : sql``;
+  return sql<MesMantencion[]>`
+    select m.proyecto_id, m.mes, i.monto as cobrado, i.para,
+      coalesce((select json_agg(json_build_object('id', g.id, 'descripcion', g.descripcion, 'monto', g.monto) order by g.fecha)
+        from gastos g where g.proyecto_id = m.proyecto_id and g.mant_mes = m.mes), '[]') as servicios
+    from (select proyecto_id, mant_mes as mes from ingresos where mant_mes is not null
+          union select proyecto_id, mant_mes from gastos where mant_mes is not null) m
+    left join ingresos i on i.proyecto_id = m.proyecto_id and i.mant_mes = m.mes
+    ${filtro}
+    order by m.mes desc`;
+};
 
 // ---------------- Mantención mensual ----------------
 

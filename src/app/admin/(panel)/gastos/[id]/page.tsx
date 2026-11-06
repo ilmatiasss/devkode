@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
-import { CampoPara } from "@/components/admin/CampoPara";
+import { CampoPagoGasto } from "@/components/admin/CampoPagoGasto";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { Selector } from "@/components/admin/Selector";
@@ -29,6 +29,7 @@ type Gasto = {
   documento: string | null;
   notas: string | null;
   pone: Record<string, number> | null;
+  mant_mes: string | null;
 };
 
 export default async function FichaGasto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
@@ -116,17 +117,12 @@ export default async function FichaGasto({ params, searchParams }: { params: Pro
           </select>
         </Campo>
         <div className="sm:col-span-2">
-          <Selector
-            name="pagado_por"
-            etiqueta="¿Quién lo pagó?"
-            inicial={gasto ? String(gasto.pagado_por ?? "") : String(usuario.id)}
-            opciones={[{ valor: "", texto: "Cuenta de la empresa" }, ...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0] }))]}
+          <CampoPagoGasto
+            socios={usuarios}
+            inicial={gasto?.mant_mes ? "mantencion" : gasto ? String(gasto.pagado_por ?? "") : String(usuario.id)}
+            mantMes={gasto?.mant_mes ?? null}
+            pone={gasto?.pone ?? null}
           />
-          <p className="mt-2 text-xs text-muted">Si lo pagó uno de ustedes de su bolsillo, se le devuelve en el reparto.</p>
-        </div>
-        <div className="sm:col-span-2">
-          <CampoPara socios={usuarios} inicial={gasto?.pone ?? null} etiqueta="¿Cuánto pone cada uno?" prefijo="pone_" />
-          <p className="mt-2 text-xs text-muted">Cuánto de este gasto se descuenta a cada uno. Viene mitad y mitad.</p>
         </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Enlace a la factura, garantía, detalles…" defaultValue={gasto?.notas ?? ""} className={entrada} />

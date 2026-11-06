@@ -5,14 +5,14 @@ import { Icono } from "@/components/admin/Icono";
 import { ServiciosMantencion } from "@/components/admin/ServiciosMantencion";
 import { Avatar, botonPrimario, colorDe, Encabezado, Etiqueta, Kpi, tarjeta, Vacio } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { estadoMantencion, listaMantenciones, listaUsuarios, serviciosDeProyectos, valorDolar } from "@/lib/admin/consultas";
+import { estadoMantencion, listaMantenciones, listaUsuarios, mesesMantencion, serviciosDeProyectos } from "@/lib/admin/consultas";
 import { clp, hoy, nombreMes } from "@/lib/admin/formato";
 import { registrarMantencion } from "../acciones";
 
 export const metadata: Metadata = { title: "Mantenciones" };
 
 export default async function Mantenciones() {
-  const [, proyectos, servicios, dolar, usuarios] = await Promise.all([exigirUsuario(), listaMantenciones(), serviciosDeProyectos(), valorDolar(), listaUsuarios()]);
+  const [, proyectos, servicios, meses, usuarios] = await Promise.all([exigirUsuario(), listaMantenciones(), serviciosDeProyectos(), mesesMantencion(), listaUsuarios()]);
   const dia = hoy();
   const mesHoy = dia.slice(0, 7);
   const filas = proyectos.map((p) => ({ ...p, estado: estadoMantencion(p, dia) }));
@@ -67,7 +67,7 @@ export default async function Mantenciones() {
                 </div>
                 {pendientes.length > 1 ? <p className="mt-3 text-xs text-[#ff8fa3]">Deben {clp(pendientes.length * p.mant_monto)} en total.</p> : null}
                 <div className="mt-4">
-                  <ServiciosMantencion proyectoId={p.id} mantencion={p.mant_monto} servicios={servicios} dolar={dolar} socios={usuarios.length} />
+                  <ServiciosMantencion proyectoId={p.id} meses={meses} servicios={servicios} socios={usuarios} limite={1} />
                 </div>
                 {siguiente ? (
                   <form action={registrarMantencion} className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-5">

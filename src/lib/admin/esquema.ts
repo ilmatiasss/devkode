@@ -168,8 +168,12 @@ update ingresos set reparto = null where reparto is not null and para is not nul
 update gastos set reparto = null where reparto is not null and pone is not null;
 update proyectos set reparto = null where reparto is not null;
 
-insert into ajustes (clave, valor) values ('esquema', '6') on conflict (clave) do update set valor = excluded.valor;
+-- Versión 7: gasto pagado con la plata de la mantención de un mes ("AAAA-MM") de su proyecto.
+-- Se descuenta de esa mantención y lo que queda se reparte como ella.
+alter table gastos add column if not exists mant_mes text;
+
+insert into ajustes (clave, valor) values ('esquema', '7') on conflict (clave) do update set valor = excluded.valor;
 `;
 
 // Se sube cada vez que el esquema cambia: el panel lo aplica solo la primera vez que lo necesita
-export const VERSION_ESQUEMA = "6";
+export const VERSION_ESQUEMA = "7";

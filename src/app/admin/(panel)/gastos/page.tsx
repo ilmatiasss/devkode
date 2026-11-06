@@ -10,7 +10,7 @@ import { colorDeCategoria, etiquetaCategoria } from "@/lib/admin/opciones";
 
 export const metadata: Metadata = { title: "Gastos" };
 
-type Fila = { id: number; fecha: string; descripcion: string; categoria: string; monto: number; detalle: string | null; persona: string | null };
+type Fila = { id: number; fecha: string; descripcion: string; categoria: string; monto: number; detalle: string | null; persona: string | null; con_mant: boolean };
 
 export default async function Gastos({ searchParams }: { searchParams: Promise<{ mes?: string }> }) {
   const sesion = sesionEnParalelo();
@@ -19,7 +19,8 @@ export default async function Gastos({ searchParams }: { searchParams: Promise<{
   const sql = db();
   const [filas, [anterior]] = await Promise.all([
     sql<Fila[]>`
-      select g.id, g.fecha, g.descripcion, g.categoria, g.monto, concat_ws(' · ', g.proveedor, p.nombre) as detalle, u.nombre as persona
+      select g.id, g.fecha, g.descripcion, g.categoria, g.monto, concat_ws(' · ', g.proveedor, p.nombre) as detalle,
+        case when g.mant_mes is not null then 'Plata de la mantención' else u.nombre end as persona, g.mant_mes is not null as con_mant
       from gastos g left join proyectos p on p.id = g.proyecto_id left join usuarios u on u.id = g.pagado_por
       where g.fecha >= ${`${mes}-01`} and g.fecha < ${`${moverMes(mes, 1)}-01`}
       order by g.fecha desc, g.id desc`,
@@ -29,7 +30,7 @@ export default async function Gastos({ searchParams }: { searchParams: Promise<{
   const porCategoria = Object.entries(filas.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.categoria]: (acc[f.categoria] ?? 0) + f.monto }), {})).sort(
     (a, b) => b[1] - a[1],
   );
-  const deBolsillo = filas.filter((f) => f.persona).reduce((s, f) => s + f.monto, 0);
+  const deBolsillo = filas.filter((f) => f.persona && !f.con_mant).reduce((s, f) => s + f.monto, 0);
 
   await sesion;
   return (

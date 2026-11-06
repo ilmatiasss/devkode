@@ -10,7 +10,7 @@ import { ServiciosMantencion } from "@/components/admin/ServiciosMantencion";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { BarraGuardar, botonPeligro, botonPrimario, Campo, Encabezado, entrada, Etiqueta, Kpi, Progreso, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { estadoMantencion, listaClientes, listaUsuarios, serviciosDeProyectos, valorDolar } from "@/lib/admin/consultas";
+import { estadoMantencion, listaClientes, listaUsuarios, mesesMantencion, serviciosDeProyectos } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { clp, fecha, hoy, nombreMes } from "@/lib/admin/formato";
 import { claves, estadosProyecto, type EstadoProyecto, tonoEstado } from "@/lib/admin/opciones";
@@ -41,7 +41,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
 
   const sql = db();
-  const [, [proyecto], clientes, usuarios, ingresos, gastos, servicios, dolar] = await Promise.all([
+  const [, [proyecto], clientes, usuarios, ingresos, gastos, servicios, meses] = await Promise.all([
     exigirUsuario(),
     nuevo ? Promise.resolve([undefined]) : sql<Proyecto[]>`select * from proyectos where id = ${Number(id)}`,
     listaClientes(),
@@ -49,7 +49,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
     nuevo ? Promise.resolve([] as Mov[]) : sql<Mov[]>`select id, fecha, descripcion, monto, mant_mes from ingresos where proyecto_id = ${Number(id)} order by fecha desc`,
     nuevo ? Promise.resolve([] as Mov[]) : sql<Mov[]>`select id, fecha, descripcion, monto from gastos where proyecto_id = ${Number(id)} order by fecha desc`,
     serviciosDeProyectos(),
-    valorDolar(),
+    nuevo ? Promise.resolve([]) : mesesMantencion(Number(id)),
   ]);
   if (!nuevo && !proyecto) notFound();
 
@@ -174,7 +174,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
                 </p>
                 <HistorialMantencion pagados={pagosMantencion.map((i) => i.mant_mes!)} pendientes={mant.pendientes} desde={(proyecto.mant_desde ?? proyecto.inicio ?? dia).slice(0, 7)} mesHoy={dia.slice(0, 7)} />
                 <div className="mt-4">
-                  <ServiciosMantencion proyectoId={proyecto.id} mantencion={proyecto.mant_monto} servicios={servicios} dolar={dolar} socios={usuarios.length} />
+                  <ServiciosMantencion proyectoId={proyecto.id} meses={meses} servicios={servicios} socios={usuarios} />
                 </div>
                 {mant.siguiente ? (
                   <form action={registrarMantencion} className="mt-5 space-y-3">

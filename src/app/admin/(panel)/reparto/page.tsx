@@ -37,7 +37,6 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
   ]);
   const calculo = await calcularReparto(periodo.desde, periodo.hasta, usuarios);
   const utilidad = resumen.ingresos - resumen.gastos;
-  const de = (lista: { persona: number | null; total: number }[], persona: number | null) => lista.find((f) => f.persona === persona)?.total ?? 0;
   const entregado = (persona: number | null) => transferencias.filter((t) => t.de_usuario === persona).reduce((s, t) => s + t.monto, 0);
   const recibido = (persona: number | null) => transferencias.filter((t) => t.a_usuario === persona).reduce((s, t) => s + t.monto, 0);
   const nombreDe = (id: number | null) => (id === null ? "la empresa" : (usuarios.find((u) => u.id === id)?.nombre.split(" ")[0] ?? "Ex socio"));
@@ -45,12 +44,12 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
   const socios = usuarios.map((u) => {
     // Lo que es para él en los ingresos menos lo que pone en los gastos
     const corresponde = calculo.leToca.get(u.id) ?? 0;
-    const recibio = de(resumen.porPersonaI, u.id);
-    const pago = de(resumen.porPersonaG, u.id);
+    const recibio = calculo.entro.get(String(u.id)) ?? 0;
+    const pago = calculo.salio.get(String(u.id)) ?? 0;
     const transfirio = recibido(u.id) - entregado(u.id); // neto de lo que se pasaron entre ellos
     return { ...u, corresponde, recibio, pago, transfirio, diferencia: corresponde - (recibio - pago + transfirio) };
   });
-  const enEmpresa = de(resumen.porPersonaI, null) - de(resumen.porPersonaG, null) - recibido(null) + entregado(null);
+  const enEmpresa = (calculo.entro.get("empresa") ?? 0) - (calculo.salio.get("empresa") ?? 0) - recibido(null) + entregado(null);
 
   // Sugerencia para el formulario: quien debe entregar le pasa a quien debe recibir
   const debe = [...socios].sort((a, b) => a.diferencia - b.diferencia)[0];
@@ -154,7 +153,7 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                   <dd className="tabular-nums">− {clp(s.recibio)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted">Pagó de su bolsillo</dt>
+                  <dt className="text-muted">Pagó desde su cuenta</dt>
                   <dd className="tabular-nums">+ {clp(s.pago)}</dd>
                 </div>
                 {s.transfirio !== 0 ? (
@@ -292,15 +291,16 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                             <span className="min-w-0 flex-1">
                               <span className="block truncate">{m.descripcion}</span>
                               <span className="block text-xs text-muted">
-                                {fecha(m.fecha)} · {m.tipo === "ingreso" ? "llegó a " : "pagó "}
-                                {m.dividido
-                                  ? Object.entries(m.dividido)
-                                      .map(([k, v]) => `${k === "empresa" ? "Empresa" : nombreDe(Number(k))} ${clp(v)}`)
-                                      .join(" + ")
-                                  : nombreDe(m.persona)}
+                                {fecha(m.fecha)} ·{" "}
+                                {m.mant_mes
+                                  ? `pagado con la mantención de ${nombreMes(m.mant_mes)}`
+                                  : `${m.tipo === "ingreso" ? "llegó a" : "pagó"} ${Object.entries(m.cuentas)
+                                      .map(([k, v]) => (Object.keys(m.cuentas).length > 1 ? `${k === "empresa" ? "la empresa" : nombreDe(Number(k))} ${clp(v)}` : k === "empresa" ? "la empresa" : nombreDe(Number(k))))
+                                      .join(" + ")}`}
                               </span>
+                              {m.sinMantencion ? <span className="block text-xs text-[#f5c96b]">Esa mantención aún no está registrada</span> : null}
                               <span className={`block text-xs ${m.iguales ? "text-muted" : "text-accent-soft"}`}>
-                                {m.tipo === "ingreso" ? "Para " : "Pone "}
+                                {m.tipo === "ingreso" ? "Para " : m.mant_mes ? "Se descuenta " : "Pone "}
                                 {usuarios.map((u) => `${u.nombre.split(" ")[0]} ${clp(m.partes[String(u.id)] ?? 0)}`).join(" · ")}
                               </span>
                             </span>

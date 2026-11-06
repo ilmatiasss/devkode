@@ -213,9 +213,13 @@ export async function guardarGasto(fd: FormData) {
     `/admin/gastos/${id ?? "nuevo"}`,
   );
   datos.pagado_por = await usuarioODelaEmpresa(datos.pagado_por);
-  const pone = await leerPartes(fd, "pone_", datos.monto, `/admin/gastos/${id ?? "nuevo"}`);
+  // Pagado con la plata de la mantención: se descuenta de la mantención de ese mes de su proyecto
+  const conMantencion = fd.get("pagado_por") === "mantencion";
+  if (conMantencion && !datos.proyecto_id) volverCon(`/admin/gastos/${id ?? "nuevo"}`, "mantencionProyecto");
+  const mant_mes = conMantencion ? (mesValido(fd.get("mant_mes")) ?? datos.fecha.slice(0, 7)) : null;
+  const pone = conMantencion ? null : await leerPartes(fd, "pone_", datos.monto, `/admin/gastos/${id ?? "nuevo"}`);
   const sql = db();
-  const fila = { ...datos, pone: pone ? sql.json(pone) : null };
+  const fila = { ...datos, pagado_por: conMantencion ? null : datos.pagado_por, mant_mes, pone: pone ? sql.json(pone) : null };
   if (id) await sql`update gastos set ${sql(fila)} where id = ${id}`;
   else await sql`insert into gastos ${sql(fila)}`;
   redirect(`/admin/gastos?mes=${datos.fecha.slice(0, 7)}&ok=guardado`);
@@ -275,11 +279,16 @@ export async function registrarPagoServicio(fd: FormData) {
 
   const sql = db();
   await sql.begin(async (tx) => {
-    const [s] = await tx<{ nombre: string; proveedor: string | null; categoria: string; ciclo: keyof typeof mesesPorCiclo; proximo_cobro: string | null; pagado_por: number | null; proyecto_id: number | null }[]>`
-      select nombre, proveedor, categoria, ciclo, proximo_cobro, pagado_por, proyecto_id from servicios where id = ${id} for update`;
+    const [s] = await tx<
+      { nombre: string; proveedor: string | null; categoria: string; ciclo: keyof typeof mesesPorCiclo; proximo_cobro: string | null; pagado_por: number | null; proyecto_id: number | null; mant_activa: boolean | null }[]
+    >`
+      select s.nombre, s.proveedor, s.categoria, s.ciclo, s.proximo_cobro, s.pagado_por, s.proyecto_id, p.mant_activa
+      from servicios s left join proyectos p on p.id = s.proyecto_id where s.id = ${id} for update of s`;
     if (!s) return;
-    await tx`insert into gastos (fecha, descripcion, categoria, monto, pagado_por, proyecto_id, servicio_id, proveedor)
-      values (${fechaPago}, ${s.nombre}, ${s.categoria}, ${montoPesos}, ${s.pagado_por}, ${s.proyecto_id}, ${id}, ${s.proveedor})`;
+    // Si el servicio es de un proyecto con mantención, se paga con la plata de la mantención de ese mes
+    const mantMes = s.proyecto_id && s.mant_activa ? fechaPago.slice(0, 7) : null;
+    await tx`insert into gastos (fecha, descripcion, categoria, monto, pagado_por, proyecto_id, servicio_id, proveedor, mant_mes)
+      values (${fechaPago}, ${s.nombre}, ${s.categoria}, ${montoPesos}, ${mantMes ? null : s.pagado_por}, ${s.proyecto_id}, ${id}, ${s.proveedor}, ${mantMes})`;
     const meses = mesesPorCiclo[s.ciclo];
     if (meses === 0) await tx`update servicios set activo = false, proximo_cobro = null where id = ${id}`;
     else await tx`update servicios set proximo_cobro = ${sumarMeses(s.proximo_cobro ?? fechaPago, meses)} where id = ${id}`;
