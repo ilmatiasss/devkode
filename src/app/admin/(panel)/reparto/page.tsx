@@ -43,14 +43,12 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
   const nombreDe = (id: number | null) => (id === null ? "la empresa" : (usuarios.find((u) => u.id === id)?.nombre.split(" ")[0] ?? "Ex socio"));
 
   const socios = usuarios.map((u) => {
-    // Considera los porcentajes propios de cada proyecto, ingreso o gasto
-    const corresponde = Math.round(calculo.corresponde.get(u.id) ?? 0);
+    // Lo que es para él en los ingresos menos lo que pone en los gastos
+    const corresponde = calculo.leToca.get(u.id) ?? 0;
     const recibio = de(resumen.porPersonaI, u.id);
     const pago = de(resumen.porPersonaG, u.id);
     const transfirio = recibido(u.id) - entregado(u.id); // neto de lo que se pasaron entre ellos
-    const diferencia = corresponde - (recibio - pago + transfirio);
-    // Con porcentajes como 66,67 quedan diferencias de unos pocos pesos por redondeo: se dan por saldadas
-    return { ...u, corresponde, recibio, pago, transfirio, diferencia: Math.abs(diferencia) < 10 ? 0 : diferencia };
+    return { ...u, corresponde, recibio, pago, transfirio, diferencia: corresponde - (recibio - pago + transfirio) };
   });
   const enEmpresa = de(resumen.porPersonaI, null) - de(resumen.porPersonaG, null) - recibido(null) + entregado(null);
 
@@ -66,8 +64,6 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
   // Si se mira un mes pasado, la transferencia por defecto queda en el último día de ese mes
   const fechaSugerida =
     periodo.tipo === "mes" && periodo.mes < mesActual() ? new Date(Date.parse(`${moverMes(periodo.mes, 1)}-01`) - 86_400_000).toISOString().slice(0, 10) : hoy();
-  const num = (n: number) => String(Math.round(n * 100) / 100).replace(".", ",");
-  const porcentajesTexto = (lista: number[]) => (lista.length === 2 ? `${num(lista[0])}/${num(lista[1])}` : lista.map((n) => `${num(n)}%`).join(" · "));
   const cuentas = [...usuarios.map((u) => ({ valor: String(u.id), texto: u.nombre.split(" ")[0], color: colorDe(u.nombre) })), { valor: "empresa", texto: "Cuenta de la empresa" }];
 
   const anioActual = Number(mesActual().slice(0, 4));
@@ -119,8 +115,8 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
 
       <h2 className="mt-10 mb-1 text-lg font-medium tracking-tight capitalize">{periodo.titulo}</h2>
       <p className="mb-5 max-w-3xl text-sm leading-relaxed text-muted">
-        A cada uno le corresponde su parte de cada ingreso y gasto, según las reglas de reparto (propio, mantenciones, proyecto, período o general). Como los pagos llegan a distintas cuentas, abajo ves cuánto falta para
-        quedar parejos. Cuando uno le pase plata al otro, anótenlo en Transferencias y la cuenta se salda.
+        Cada ingreso dice cuánto es para cada uno y cada gasto cuánto pone cada uno. Abajo ves cuánto le toca a cada socio, cuánto ya tiene y cuánto
+        falta para quedar parejos. Cuando uno le pase plata al otro, anótenlo en Transferencias.
       </p>
 
       {/* Reparto visual de la utilidad */}
@@ -130,7 +126,7 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
             <div
               key={s.id}
               className="barra h-full first:rounded-l-full last:rounded-r-full"
-              style={{ width: `${utilidad > 0 ? Math.max(0, (s.corresponde / utilidad) * 100) : s.porcentaje}%`, background: colorDe(s.nombre) }}
+              style={{ width: `${utilidad > 0 ? Math.max(0, (s.corresponde / utilidad) * 100) : 100 / socios.length}%`, background: colorDe(s.nombre) }}
             />
           ))}
         </div>
@@ -145,14 +141,12 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                 <Avatar nombre={s.nombre} color={colorDe(s.nombre)} className="size-11 text-base" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{s.nombre}</p>
-                  <p className="text-xs text-muted">
-                    {utilidad !== 0 ? `${Math.round((s.corresponde / utilidad) * 100)}% de la utilidad del período` : `${s.porcentaje}% general`}
-                  </p>
+                  {utilidad > 0 ? <p className="text-xs text-muted">{Math.round((s.corresponde / utilidad) * 100)}% de la utilidad del período</p> : null}
                 </div>
               </div>
               <dl className="mt-5 space-y-2.5 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-muted">Le corresponde</dt>
+                  <dt className="text-muted">Le toca</dt>
                   <dd className="tabular-nums">{clp(s.corresponde)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
@@ -267,14 +261,8 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="mb-1 font-medium">Por proyecto</h2>
-              <p className="text-sm text-muted">Toca un proyecto para ver de dónde sale cada número y editarlo.</p>
+              <p className="text-sm text-muted">Toca un proyecto para ver cada pago y gasto, y editarlo.</p>
             </div>
-            <Link href="/admin/ajustes#reglas" className="rounded-xl border border-line px-3 py-2 text-xs text-muted hover:border-accent/50 hover:text-fg">
-              Reglas: general {porcentajesTexto(usuarios.map((u) => u.porcentaje))}
-              {calculo.reglas.periodos.length ? ` · ${calculo.reglas.periodos.length} período${calculo.reglas.periodos.length > 1 ? "s" : ""}` : ""}
-              {calculo.reglas.mantencion ? ` · mantenciones ${porcentajesTexto(usuarios.map((u) => calculo.reglas.mantencion?.[String(u.id)] ?? 0))}` : ""}
-              {" "}→
-            </Link>
           </div>
           <ul className="divide-y divide-line">
             {calculo.porProyecto.map((g) => (
@@ -294,7 +282,6 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                           {u.nombre.split(" ")[0]}: <span className="text-fg tabular-nums">{clp(g.partes.get(u.id) ?? 0)}</span>
                         </span>
                       ))}
-                      <span className={g.reglas.size === 1 && g.reglas.has("general") ? "" : "text-accent-soft"}>{[...g.reglas].join(" · ")}</span>
                     </p>
                   </summary>
                   <div className="mt-3 ml-5.5 rounded-xl border border-line bg-bg/40">
@@ -310,10 +297,11 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                                   ? Object.entries(m.dividido)
                                       .map(([k, v]) => `${k === "empresa" ? "Empresa" : nombreDe(Number(k))} ${clp(v)}`)
                                       .join(" + ")
-                                  : nombreDe(m.persona)}{" "}
-                                · <span className={m.origen === "general" ? "" : "text-accent-soft"}>
-                                  {porcentajesTexto(m.porcentajes)} {m.etiqueta}
-                                </span>
+                                  : nombreDe(m.persona)}
+                              </span>
+                              <span className={`block text-xs ${m.iguales ? "text-muted" : "text-accent-soft"}`}>
+                                {m.tipo === "ingreso" ? "Para " : "Pone "}
+                                {usuarios.map((u) => `${u.nombre.split(" ")[0]} ${clp(m.partes[String(u.id)] ?? 0)}`).join(" · ")}
                               </span>
                             </span>
                             <span className={`tabular-nums ${m.tipo === "ingreso" ? "text-[#7ee2a0]" : "text-[#ff8fa3]"}`}>
@@ -326,7 +314,7 @@ export default async function Reparto({ searchParams }: { searchParams: Promise<
                     </ul>
                     {g.id ? (
                       <Link href={`/admin/proyectos/${g.id}`} className="flex items-center justify-center gap-1.5 border-t border-line px-3 py-2.5 text-xs text-accent-soft hover:text-fg">
-                        Cambiar el reparto de {g.nombre} <Icono nombre="adelante" className="size-3.5" />
+                        Ir al proyecto {g.nombre} <Icono nombre="adelante" className="size-3.5" />
                       </Link>
                     ) : null}
                   </div>

@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
 import { CampoRecibido } from "@/components/admin/CampoRecibido";
-import { CampoReparto } from "@/components/admin/CampoReparto";
+import { CampoPara } from "@/components/admin/CampoPara";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { BarraGuardar, botonPeligro, Campo, Encabezado, entrada, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { listaProyectos, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
+import { listaProyectos, listaUsuarios } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { hoy } from "@/lib/admin/formato";
 import { eliminarIngreso, guardarIngreso } from "../../acciones";
 
 export const metadata: Metadata = { title: "Ingreso" };
 
-type Ingreso = { id: number; fecha: string; descripcion: string; monto: number; proyecto_id: number | null; recibido_por: number | null; notas: string | null; mant_mes: string | null; reparto: Reparto; recibido_detalle: Record<string, number> | null };
+type Ingreso = { id: number; fecha: string; descripcion: string; monto: number; proyecto_id: number | null; recibido_por: number | null; notas: string | null; mant_mes: string | null; para: Record<string, number> | null; recibido_detalle: Record<string, number> | null };
 
 export default async function FichaIngreso({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
   const { id } = await params;
@@ -65,7 +65,8 @@ export default async function FichaIngreso({ params, searchParams }: { params: P
           <input name="mant_mes" type="month" defaultValue={ingreso?.mant_mes ?? ""} className={entrada} />
         </Campo>
         <div className="sm:col-span-2">
-          <CampoReparto socios={usuarios} inicial={ingreso?.reparto ?? null} textoBase="Según las reglas" />
+          <CampoPara socios={usuarios} inicial={ingreso?.para ?? null} etiqueta="¿Para quién es?" prefijo="para_" />
+          <p className="mt-2 text-xs text-muted">Cuánto de este pago le corresponde a cada uno. Viene mitad y mitad; cámbialo si no fue así.</p>
         </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Número de factura, medio de pago…" defaultValue={ingreso?.notas ?? ""} className={entrada} />

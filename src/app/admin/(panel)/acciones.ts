@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import { cerrarOtrasSesiones, cerrarSesion, exigirUsuario } from "@/lib/admin/auth";
 import { CLAVE_MINIMA, hashClave, verificarClave } from "@/lib/admin/clave";
+import { partesIguales } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import {
   type CodigoError,
@@ -58,24 +59,21 @@ async function leerDivision(fd: FormData, monto: number, volver: string) {
   return detalle;
 }
 
-// Porcentajes por socio (campos "<prefijo><id>"), con hasta dos decimales. Null si no suman 100.
-function porcentajesDe(fd: FormData, prefijo: string, usuarios: { id: number }[]) {
-  const reparto: Record<string, number> = {};
-  for (const u of usuarios) {
-    const n = Math.round(Number(String(fd.get(`${prefijo}${u.id}`) ?? "").replace(",", ".")) * 100) / 100;
-    if (!Number.isFinite(n) || n < 0 || n > 100) return null;
-    reparto[String(u.id)] = n;
-  }
-  return Math.abs(Object.values(reparto).reduce((a, b) => a + b, 0) - 100) < 0.01 ? reparto : null;
-}
-
-// Reparto personalizado del formulario (componente CampoReparto). Null = usar el general/del proyecto.
-async function leerReparto(fd: FormData, volver: string) {
-  if (fd.get("reparto_modo") !== "personalizado") return null;
+// Cuánto es para cada socio (ingreso) o cuánto pone cada uno (gasto), en pesos (componente CampoPara).
+// Debe sumar el monto total. Si queda mitad y mitad se guarda vacío.
+async function leerPartes(fd: FormData, prefijo: string, monto: number, volver: string) {
   const usuarios = await db()<{ id: number }[]>`select id from usuarios order by id`;
-  const reparto = porcentajesDe(fd, "reparto_", usuarios);
-  if (!reparto) volverCon(volver, "porcentajes");
-  return reparto;
+  // Formularios sin estos campos (ej. registro rápido de mantención): mitad y mitad
+  if (usuarios.length < 2 || usuarios.every((u) => fd.get(`${prefijo}${u.id}`) === null)) return null;
+  const partes: Record<string, number> = {};
+  for (const u of usuarios) {
+    const valor = String(fd.get(`${prefijo}${u.id}`) ?? "").replace(/[$\s.]/g, "");
+    if (valor && !/^\d{1,10}$/.test(valor)) volverCon(volver, "monto");
+    partes[String(u.id)] = Number(valor) || 0;
+  }
+  if (Object.values(partes).reduce((a, b) => a + b, 0) !== monto) volverCon(volver, "partes");
+  const iguales = partesIguales(monto, usuarios);
+  return usuarios.every((u) => iguales[String(u.id)] === partes[String(u.id)]) ? null : partes;
 }
 
 const mesValido = (v: FormDataEntryValue | null) => (typeof v === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : null);
@@ -137,9 +135,8 @@ export async function guardarProyecto(fd: FormData) {
     }),
     `/admin/proyectos/${id ?? "nuevo"}`,
   );
-  const reparto = await leerReparto(fd, `/admin/proyectos/${id ?? "nuevo"}`);
   const sql = db();
-  const fila = { ...datos, reparto: reparto ? sql.json(reparto) : null };
+  const fila = datos;
   if (id) {
     await sql`update proyectos set ${sql(fila)} where id = ${id}`;
     redirect(`/admin/proyectos/${id}?ok=guardado`);
@@ -174,10 +171,10 @@ export async function guardarIngreso(fd: FormData) {
   datos.recibido_por = await usuarioODelaEmpresa(datos.recibido_por);
   const recibido_detalle = await leerDivision(fd, datos.monto, `/admin/ingresos/${id ?? "nuevo"}`);
   if (recibido_detalle) datos.recibido_por = null;
-  const reparto = await leerReparto(fd, `/admin/ingresos/${id ?? "nuevo"}`);
+  const para = await leerPartes(fd, "para_", datos.monto, `/admin/ingresos/${id ?? "nuevo"}`);
   const mant_mes = datos.proyecto_id ? mesValido(fd.get("mant_mes")) : null;
   const sql = db();
-  const fila = { ...datos, mant_mes, reparto: reparto ? sql.json(reparto) : null, recibido_detalle: recibido_detalle ? sql.json(recibido_detalle) : null };
+  const fila = { ...datos, mant_mes, para: para ? sql.json(para) : null, recibido_detalle: recibido_detalle ? sql.json(recibido_detalle) : null };
   try {
     if (id) await sql`update ingresos set ${sql(fila)} where id = ${id}`;
     else await sql`insert into ingresos ${sql(fila)}`;
@@ -216,9 +213,9 @@ export async function guardarGasto(fd: FormData) {
     `/admin/gastos/${id ?? "nuevo"}`,
   );
   datos.pagado_por = await usuarioODelaEmpresa(datos.pagado_por);
-  const reparto = await leerReparto(fd, `/admin/gastos/${id ?? "nuevo"}`);
+  const pone = await leerPartes(fd, "pone_", datos.monto, `/admin/gastos/${id ?? "nuevo"}`);
   const sql = db();
-  const fila = { ...datos, reparto: reparto ? sql.json(reparto) : null };
+  const fila = { ...datos, pone: pone ? sql.json(pone) : null };
   if (id) await sql`update gastos set ${sql(fila)} where id = ${id}`;
   else await sql`insert into gastos ${sql(fila)}`;
   redirect(`/admin/gastos?mes=${datos.fecha.slice(0, 7)}&ok=guardado`);
@@ -303,13 +300,14 @@ export async function registrarMantencion(fd: FormData) {
   const fecha = validar(() => fechaDe(fd, "fecha", false), volver) ?? hoy();
   const dividido = await leerDivision(fd, monto, volver);
   const recibido = dividido ? null : await usuarioODelaEmpresa(idDe(fd, "recibido_por"));
+  const para = await leerPartes(fd, "para_", monto, volver);
 
   const sql = db();
   const [p] = await sql<{ nombre: string }[]>`select nombre from proyectos where id = ${id}`;
   if (!p) volverCon(volver, "faltan");
   try {
-    await sql`insert into ingresos (fecha, descripcion, monto, proyecto_id, recibido_por, recibido_detalle, mant_mes)
-      values (${fecha}, ${`Mantención ${nombreMes(mes)} · ${p.nombre}`}, ${monto}, ${id}, ${recibido}, ${dividido ? sql.json(dividido) : null}, ${mes})`;
+    await sql`insert into ingresos (fecha, descripcion, monto, proyecto_id, recibido_por, recibido_detalle, para, mant_mes)
+      values (${fecha}, ${`Mantención ${nombreMes(mes)} · ${p.nombre}`}, ${monto}, ${id}, ${recibido}, ${dividido ? sql.json(dividido) : null}, ${para ? sql.json(para) : null}, ${mes})`;
   } catch (error) {
     if ((error as { code?: string }).code === "23505") volverCon(volver, "mantencionRepetida");
     throw error;
@@ -352,50 +350,6 @@ export async function eliminarTransferencia(fd: FormData) {
   redirect(conAviso(rutaReparto(fd), "ok=eliminado"));
 }
 
-// ---------------- Reglas de reparto ----------------
-
-const finDeMes = (mes: string) => new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
-
-export async function guardarPeriodo(fd: FormData) {
-  await exigirUsuario();
-  const volver = "/admin/ajustes";
-  const id = idDe(fd, "id");
-  const desde = mesValido(fd.get("desde"));
-  const hastaTexto = String(fd.get("hasta") ?? "");
-  const hasta = hastaTexto ? mesValido(hastaTexto) : null;
-  if (!desde || (hastaTexto && !hasta) || (hasta && hasta < desde)) volverCon(volver, "fecha");
-  const usuarios = await db()<{ id: number }[]>`select id from usuarios order by id`;
-  const reparto = porcentajesDe(fd, "periodo_", usuarios);
-  if (!reparto) volverCon(volver, "porcentajes");
-  const sql = db();
-  const fila = { desde: `${desde}-01`, hasta: hasta ? finDeMes(hasta) : null, reparto: sql.json(reparto), nota: opcional(fd, "nota", 200) };
-  if (id) await sql`update periodos_reparto set ${sql(fila)} where id = ${id}`;
-  else await sql`insert into periodos_reparto ${sql(fila)}`;
-  redirect(`${volver}?ok=guardado#reglas`);
-}
-
-export async function eliminarPeriodo(fd: FormData) {
-  await exigirUsuario();
-  const id = idDe(fd, "id");
-  if (id) await db()`delete from periodos_reparto where id = ${id}`;
-  redirect("/admin/ajustes?ok=eliminado#reglas");
-}
-
-export async function guardarReglaMantencion(fd: FormData) {
-  await exigirUsuario();
-  const sql = db();
-  if (fd.get("activa") !== "on") {
-    await sql`delete from ajustes where clave = 'reparto_mantencion'`;
-  } else {
-    const usuarios = await sql<{ id: number }[]>`select id from usuarios order by id`;
-    const reparto = porcentajesDe(fd, "mant_", usuarios);
-    if (!reparto) volverCon("/admin/ajustes", "porcentajes");
-    await sql`insert into ajustes (clave, valor) values ('reparto_mantencion', ${JSON.stringify(reparto)})
-      on conflict (clave) do update set valor = excluded.valor`;
-  }
-  redirect("/admin/ajustes?ok=guardado#reglas");
-}
-
 // ---------------- Ajustes ----------------
 
 export async function guardarAjustes(fd: FormData) {
@@ -403,16 +357,10 @@ export async function guardarAjustes(fd: FormData) {
   const sql = db();
   const dolar = validar(() => pesosDe(fd, "dolar", 1), "/admin/ajustes");
   const usuarios = await sql<{ id: number }[]>`select id from usuarios order by id`;
-  const general = porcentajesDe(fd, "porcentaje_", usuarios);
-  if (!general) volverCon("/admin/ajustes", "porcentajes");
-  const porcentajes = usuarios.map((u) => ({
-    id: u.id,
-    porcentaje: general[String(u.id)],
-    nombre: texto(fd, `nombre_${u.id}`, 80) || null, // vacío = se mantiene el actual
-  }));
+  const nombres = usuarios.map((u) => ({ id: u.id, nombre: texto(fd, `nombre_${u.id}`, 80) || null })); // vacío = se mantiene
   await sql.begin(async (tx) => {
     await tx`insert into ajustes (clave, valor) values ('dolar', ${String(dolar)}) on conflict (clave) do update set valor = excluded.valor`;
-    for (const p of porcentajes) await tx`update usuarios set porcentaje = ${p.porcentaje}, nombre = coalesce(${p.nombre}, nombre) where id = ${p.id}`;
+    for (const u of nombres) await tx`update usuarios set nombre = coalesce(${u.nombre}, nombre) where id = ${u.id}`;
   });
   redirect("/admin/ajustes?ok=guardado");
 }

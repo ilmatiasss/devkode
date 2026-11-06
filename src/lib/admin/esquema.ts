@@ -150,8 +150,26 @@ create table if not exists periodos_reparto (
   creado timestamptz not null default now()
 );
 
-insert into ajustes (clave, valor) values ('esquema', '5') on conflict (clave) do update set valor = excluded.valor;
+-- Versión 6: reparto en pesos. Cada ingreso dice cuánto es para cada socio y cada gasto cuánto pone
+-- cada uno: {"<id de usuario>": pesos}. Vacío = mitad y mitad. Reemplaza a los porcentajes y reglas.
+alter table ingresos add column if not exists para jsonb;
+alter table gastos add column if not exists pone jsonb;
+-- Pasa a pesos los porcentajes propios que ya existían (del movimiento o de su proyecto)
+update ingresos i set para = (select jsonb_object_agg(e.key, round(i.monto * e.value::numeric / 100)) from jsonb_each_text(coalesce(i.reparto, p.reparto)) e)
+  from proyectos p where i.para is null and p.id = i.proyecto_id and coalesce(i.reparto, p.reparto) is not null;
+update ingresos i set para = (select jsonb_object_agg(e.key, round(i.monto * e.value::numeric / 100)) from jsonb_each_text(i.reparto) e)
+  where i.para is null and i.reparto is not null;
+update gastos g set pone = (select jsonb_object_agg(e.key, round(g.monto * e.value::numeric / 100)) from jsonb_each_text(coalesce(g.reparto, p.reparto)) e)
+  from proyectos p where g.pone is null and p.id = g.proyecto_id and coalesce(g.reparto, p.reparto) is not null;
+update gastos g set pone = (select jsonb_object_agg(e.key, round(g.monto * e.value::numeric / 100)) from jsonb_each_text(g.reparto) e)
+  where g.pone is null and g.reparto is not null;
+-- Los porcentajes ya quedaron pasados a pesos: se limpian para no volver a convertirlos
+update ingresos set reparto = null where reparto is not null and para is not null;
+update gastos set reparto = null where reparto is not null and pone is not null;
+update proyectos set reparto = null where reparto is not null;
+
+insert into ajustes (clave, valor) values ('esquema', '6') on conflict (clave) do update set valor = excluded.valor;
 `;
 
 // Se sube cada vez que el esquema cambia: el panel lo aplica solo la primera vez que lo necesita
-export const VERSION_ESQUEMA = "5";
+export const VERSION_ESQUEMA = "6";

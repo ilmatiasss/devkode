@@ -1,5 +1,4 @@
 import { db } from "./db";
-import { nombreMes } from "./formato";
 
 // Consultas compartidas entre páginas del panel
 
@@ -91,52 +90,21 @@ export function listaTransferencias(desde: string | null, hasta: string | null) 
   return sql<Transferencia[]>`select id, fecha, de_usuario, a_usuario, monto, notas from transferencias ${filtro} order by fecha desc, id desc`;
 }
 
-// {"<id usuario>": porcentaje}. Null = usar las reglas (proyecto, período o general)
-export type Reparto = Record<string, number> | null;
+// ---------------- Reparto en pesos ----------------
+// Cada ingreso dice cuánto es para cada socio ("para") y cada gasto cuánto pone cada uno ("pone"),
+// en pesos. Si no se indicó, se divide en partes iguales.
 
-// Los porcentajes aceptan hasta dos decimales (ej. 66,67 / 33,33)
-export const repartoValido = (r: unknown): r is Record<string, number> =>
-  typeof r === "object" && r !== null && Object.keys(r).length > 0 && Math.abs(Object.values(r).reduce<number>((s, v) => s + Number(v), 0) - 100) < 0.01;
+export type Partes = Record<string, number>;
 
-// Un reparto distinto durante un rango de meses (ej. de octubre a febrero, 67/33)
-export type PeriodoReparto = { id: number; desde: string; hasta: string | null; reparto: Record<string, number>; nota: string | null };
-export type ReglasReparto = { periodos: PeriodoReparto[]; mantencion: Record<string, number> | null };
-
-export async function reglasReparto(): Promise<ReglasReparto> {
-  const sql = db();
-  const [periodos, [mant]] = await Promise.all([
-    sql<PeriodoReparto[]>`select id, desde, hasta, reparto, nota from periodos_reparto order by desde desc, id desc`,
-    sql<{ valor: string }[]>`select valor from ajustes where clave = 'reparto_mantencion'`,
-  ]);
-  let mantencion: Record<string, number> | null = null;
-  try {
-    const valor = mant ? JSON.parse(mant.valor) : null;
-    if (repartoValido(valor)) mantencion = valor;
-  } catch {}
-  return { periodos: periodos.filter((p) => repartoValido(p.reparto)), mantencion };
+// Partes iguales entre los socios (lo que sobra del redondeo va al primero)
+export function partesIguales(monto: number, usuarios: { id: number }[]): Partes {
+  if (!usuarios.length) return {};
+  const base = Math.floor(monto / usuarios.length);
+  return Object.fromEntries(usuarios.map((u, i) => [String(u.id), base + (i === 0 ? monto - base * usuarios.length : 0)]));
 }
 
-export type OrigenReparto = "propio" | "mantencion" | "proyecto" | "periodo" | "general";
-
-const mesCorto = (fecha: string) => nombreMes(fecha.slice(0, 7)).replace(/^(\S{3})\S*/, "$1");
-export const textoPeriodo = (p: Pick<PeriodoReparto, "desde" | "hasta">) => (p.hasta ? `${mesCorto(p.desde)} a ${mesCorto(p.hasta)}` : `desde ${mesCorto(p.desde)}`);
-
-// Qué reparto se aplica a un movimiento, en este orden:
-// 1) el propio del movimiento, 2) la regla de mantenciones (pagos de mantención y los servicios del
-// proyecto), 3) el del proyecto, 4) el período que cubre su fecha, 5) los porcentajes generales.
-export function repartoDe(
-  m: { fecha: string; reparto: Reparto; reparto_proyecto: Reparto; es_mantencion: boolean },
-  reglas: ReglasReparto,
-  usuarios: Persona[],
-): { porcentajes: number[]; origen: OrigenReparto; etiqueta: string } {
-  const de = (r: Record<string, number>) => usuarios.map((u) => Number(r[String(u.id)] ?? 0));
-  if (repartoValido(m.reparto)) return { porcentajes: de(m.reparto), origen: "propio", etiqueta: "propio" };
-  if (m.es_mantencion && reglas.mantencion) return { porcentajes: de(reglas.mantencion), origen: "mantencion", etiqueta: "regla de mantenciones" };
-  if (repartoValido(m.reparto_proyecto)) return { porcentajes: de(m.reparto_proyecto), origen: "proyecto", etiqueta: "del proyecto" };
-  const periodo = reglas.periodos.find((p) => m.fecha >= p.desde && (!p.hasta || m.fecha <= p.hasta));
-  if (periodo) return { porcentajes: de(periodo.reparto), origen: "periodo", etiqueta: `período ${textoPeriodo(periodo)}` };
-  return { porcentajes: usuarios.map((u) => u.porcentaje), origen: "general", etiqueta: "general" };
-}
+export const partesDe = (guardadas: Partes | null, monto: number, usuarios: { id: number }[]): Partes =>
+  guardadas && Object.keys(guardadas).length ? guardadas : partesIguales(monto, usuarios);
 
 type MovReparto = {
   tipo: "ingreso" | "gasto";
@@ -144,67 +112,47 @@ type MovReparto = {
   fecha: string;
   descripcion: string;
   monto: number;
-  reparto: Reparto;
-  reparto_proyecto: Reparto;
   proyecto_id: number | null;
   proyecto: string | null;
-  persona: number | null; // quién lo recibió o pagó; null = cuenta de la empresa
-  dividido: Record<string, number> | null;
-  es_mantencion: boolean;
+  persona: number | null; // a quién llegó o quién pagó; null = cuenta de la empresa
+  dividido: Partes | null; // ingreso que llegó repartido entre varias cuentas
+  partes: Partes | null;
 };
 
-// Un movimiento dentro del detalle de Reparto, con el porcentaje que se le aplicó a cada socio y por qué
-export type MovimientoReparto = Omit<MovReparto, "reparto" | "reparto_proyecto"> & { porcentajes: number[]; origen: OrigenReparto; etiqueta: string };
+export type MovimientoReparto = Omit<MovReparto, "partes"> & { partes: Partes; iguales: boolean };
 
-// Cuánto le corresponde a cada socio en un período, y el detalle por proyecto
+// Cuánto le toca a cada socio en un período (lo que es para él menos lo que pone en gastos), por proyecto
 export async function calcularReparto(desde: string | null, hasta: string | null, usuarios: Persona[]) {
   const sql = db();
   const filtro = desde && hasta ? sql`where m.fecha >= ${desde} and m.fecha < ${hasta}` : sql``;
-  const [movs, reglas] = await Promise.all([
-    sql<MovReparto[]>`
-      select 'ingreso' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto,
-        m.recibido_por as persona, m.recibido_detalle as dividido, m.mant_mes is not null as es_mantencion
-      from ingresos m left join proyectos p on p.id = m.proyecto_id ${filtro}
-      union all
-      -- Un servicio pagado para un proyecto (hosting, dominio…) cuenta como costo de su mantención
-      select 'gasto' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.reparto, p.reparto as reparto_proyecto, m.proyecto_id, p.nombre as proyecto,
-        m.pagado_por as persona, null as dividido, (m.servicio_id is not null and m.proyecto_id is not null) as es_mantencion
-      from gastos m left join proyectos p on p.id = m.proyecto_id ${filtro}
-      order by fecha desc, id desc`,
-    reglasReparto(),
-  ]);
+  const movs = await sql<MovReparto[]>`
+    select 'ingreso' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.proyecto_id, p.nombre as proyecto,
+      m.recibido_por as persona, m.recibido_detalle as dividido, m.para as partes
+    from ingresos m left join proyectos p on p.id = m.proyecto_id ${filtro}
+    union all
+    select 'gasto' as tipo, m.id, m.fecha, m.descripcion, m.monto, m.proyecto_id, p.nombre as proyecto,
+      m.pagado_por as persona, null as dividido, m.pone as partes
+    from gastos m left join proyectos p on p.id = m.proyecto_id ${filtro}
+    order by fecha desc, id desc`;
 
-  const corresponde = new Map(usuarios.map((u) => [u.id, 0]));
-  const porProyecto = new Map<
-    string,
-    { nombre: string; id: number | null; utilidad: number; partes: Map<number, number>; reglas: Set<string>; movimientos: MovimientoReparto[] }
-  >();
+  const leToca = new Map(usuarios.map((u) => [u.id, 0]));
+  const porProyecto = new Map<string, { nombre: string; id: number | null; utilidad: number; partes: Map<number, number>; movimientos: MovimientoReparto[] }>();
   for (const m of movs) {
     const signo = m.tipo === "ingreso" ? 1 : -1;
     const clave = m.proyecto_id === null ? "general" : String(m.proyecto_id);
-    const grupo = porProyecto.get(clave) ?? {
-      nombre: m.proyecto ?? "Generales (sin proyecto)",
-      id: m.proyecto_id,
-      utilidad: 0,
-      partes: new Map(usuarios.map((u) => [u.id, 0])),
-      reglas: new Set<string>(),
-      movimientos: [],
-    };
-    const aplicado = repartoDe(m, reglas, usuarios);
-    const { reparto, reparto_proyecto, ...resto } = m;
-    grupo.movimientos.push({ ...resto, ...aplicado });
-    grupo.reglas.add(aplicado.etiqueta);
+    const grupo = porProyecto.get(clave) ?? { nombre: m.proyecto ?? "Sin proyecto", id: m.proyecto_id, utilidad: 0, partes: new Map(usuarios.map((u) => [u.id, 0])), movimientos: [] };
+    const partes = partesDe(m.partes, m.monto, usuarios);
+    grupo.movimientos.push({ ...m, partes, iguales: !m.partes });
     grupo.utilidad += signo * m.monto;
-    usuarios.forEach((u, i) => {
-      const parte = (signo * m.monto * aplicado.porcentajes[i]) / 100;
-      corresponde.set(u.id, corresponde.get(u.id)! + parte);
+    for (const u of usuarios) {
+      const parte = signo * Number(partes[String(u.id)] ?? 0);
+      leToca.set(u.id, leToca.get(u.id)! + parte);
       grupo.partes.set(u.id, grupo.partes.get(u.id)! + parte);
-    });
+    }
     porProyecto.set(clave, grupo);
   }
   return {
-    corresponde,
-    reglas,
+    leToca,
     porProyecto: [...porProyecto.values()].sort((a, b) => (a.id === null ? 1 : b.id === null ? -1 : b.utilidad - a.utilidad)),
   };
 }

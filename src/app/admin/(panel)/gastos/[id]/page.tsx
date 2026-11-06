@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
-import { CampoReparto } from "@/components/admin/CampoReparto";
+import { CampoPara } from "@/components/admin/CampoPara";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { Selector } from "@/components/admin/Selector";
 import { BarraGuardar, botonPeligro, Campo, Encabezado, enlace, entrada, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { listaProyectos, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
+import { listaProyectos, listaUsuarios } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { hoy } from "@/lib/admin/formato";
 import { categoriasGasto, claves, colorDeCategoria } from "@/lib/admin/opciones";
@@ -28,7 +28,7 @@ type Gasto = {
   proveedor: string | null;
   documento: string | null;
   notas: string | null;
-  reparto: Reparto;
+  pone: Record<string, number> | null;
 };
 
 export default async function FichaGasto({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
@@ -125,7 +125,8 @@ export default async function FichaGasto({ params, searchParams }: { params: Pro
           <p className="mt-2 text-xs text-muted">Si lo pagó uno de ustedes de su bolsillo, se le devuelve en el reparto.</p>
         </div>
         <div className="sm:col-span-2">
-          <CampoReparto socios={usuarios} inicial={gasto?.reparto ?? null} textoBase="Según las reglas" etiqueta="Cómo se reparte este gasto" />
+          <CampoPara socios={usuarios} inicial={gasto?.pone ?? null} etiqueta="¿Cuánto pone cada uno?" prefijo="pone_" />
+          <p className="mt-2 text-xs text-muted">Cuánto de este gasto se descuenta a cada uno. Viene mitad y mitad.</p>
         </div>
         <Campo etiqueta="Notas" className="sm:col-span-2">
           <textarea name="notas" rows={3} maxLength={2000} placeholder="Enlace a la factura, garantía, detalles…" defaultValue={gasto?.notas ?? ""} className={entrada} />

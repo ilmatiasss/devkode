@@ -3,13 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BotonConfirmar } from "@/components/admin/BotonConfirmar";
 import { CampoRecibido } from "@/components/admin/CampoRecibido";
-import { CampoReparto } from "@/components/admin/CampoReparto";
+import { CampoPara } from "@/components/admin/CampoPara";
 import { HistorialMantencion } from "@/components/admin/HistorialMantencion";
 import { Icono } from "@/components/admin/Icono";
 import { InputMonto } from "@/components/admin/InputMonto";
 import { BarraGuardar, botonPeligro, botonPrimario, Campo, Encabezado, entrada, Etiqueta, Kpi, Progreso, tarjeta, ZonaPeligro } from "@/components/admin/ui";
 import { exigirUsuario } from "@/lib/admin/auth";
-import { estadoMantencion, listaClientes, listaUsuarios, type Reparto } from "@/lib/admin/consultas";
+import { estadoMantencion, listaClientes, listaUsuarios } from "@/lib/admin/consultas";
 import { db } from "@/lib/admin/db";
 import { clp, fecha, hoy, nombreMes } from "@/lib/admin/formato";
 import { claves, estadosProyecto, type EstadoProyecto, tonoEstado } from "@/lib/admin/opciones";
@@ -30,7 +30,6 @@ type Proyecto = {
   mant_monto: number;
   mant_dia: number;
   mant_desde: string | null;
-  reparto: Reparto;
 };
 type Mov = { id: number; fecha: string; descripcion: string; monto: number; mant_mes?: string | null };
 
@@ -149,10 +148,6 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
               </Campo>
             </div>
           </fieldset>
-          <div className="sm:col-span-2">
-            <CampoReparto socios={usuarios} inicial={proyecto?.reparto ?? null} textoBase="Según las reglas" etiqueta="Cómo se reparte este proyecto" mostrarGeneral />
-            <p className="mt-2 text-xs text-muted">Se aplica a todos sus pagos y gastos, salvo que uno tenga su propio reparto.</p>
-          </div>
           <Campo etiqueta="Notas" className="sm:col-span-2">
             <textarea name="notas" rows={4} maxLength={4000} placeholder="Alcance, acuerdos, accesos pendientes…" defaultValue={proyecto?.notas ?? ""} className={entrada} />
           </Campo>
@@ -194,6 +189,7 @@ export default async function FichaProyecto({ params, searchParams }: { params: 
                       </Campo>
                     </div>
                     <CampoRecibido socios={usuarios} inicial={null} detalle={null} />
+                    <CampoPara socios={usuarios} inicial={null} etiqueta="¿Para quién es?" prefijo="para_" />
                     <button type="submit" className={`${botonPrimario} w-full`}>
                       <Icono nombre="check" className="size-4" /> Registrar mantención
                     </button>
