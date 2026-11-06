@@ -15,9 +15,11 @@ import { eliminarServicio, guardarServicio, registrarPagoServicio } from "../../
 
 export const metadata: Metadata = { title: "Servicio" };
 
-export default async function FichaServicio({ params }: { params: Promise<{ id: string }> }) {
+export default async function FichaServicio({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ proyecto?: string }> }) {
   const sesion = sesionEnParalelo();
   const { id } = await params;
+  const q = await searchParams;
+  const proyectoInicial = q.proyecto && /^\d{1,9}$/.test(q.proyecto) ? q.proyecto : "";
   const nuevo = id === "nuevo";
   if (!nuevo && !/^\d{1,9}$/.test(id)) notFound();
 
@@ -84,9 +86,9 @@ export default async function FichaServicio({ params }: { params: Promise<{ id: 
               ))}
             </select>
           </Campo>
-          <Campo etiqueta="Proyecto (si es de un cliente)">
-            <select name="proyecto_id" defaultValue={servicio?.proyecto_id ?? ""} className={entrada}>
-              <option value="">Servicio propio de DevKode</option>
+          <Campo etiqueta="¿Lo paga la mantención de un proyecto?" ayuda="Elige el proyecto si este servicio se paga con lo que cobran de mantención.">
+            <select name="proyecto_id" defaultValue={servicio?.proyecto_id ?? proyectoInicial} className={entrada}>
+              <option value="">No, es un gasto propio de DevKode</option>
               {proyectos.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.nombre}

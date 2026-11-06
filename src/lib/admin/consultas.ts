@@ -54,6 +54,11 @@ export const mensualEnPesos = (s: Pick<Servicio, "costo" | "moneda" | "ciclo">, 
   return divisor ? enPesos(s, dolar) / divisor : 0;
 };
 
+// Servicios activos que se pagan para un proyecto (los cubre su mantención)
+export type ServicioDeProyecto = Pick<Servicio, "id" | "nombre" | "costo" | "moneda" | "ciclo" | "proyecto_id">;
+export const serviciosDeProyectos = () =>
+  db()<ServicioDeProyecto[]>`select id, nombre, costo, moneda, ciclo, proyecto_id from servicios where activo and proyecto_id is not null order by nombre`;
+
 // Resumen de un período: ingresos, gastos y cuánto pasó por cada socio o por la empresa
 export async function resumenPeriodo(desde: string | null, hasta: string | null) {
   const sql = db();
