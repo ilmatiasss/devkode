@@ -46,7 +46,7 @@ export const servicios: Servicio[] = [
       { titulo: "Más contactos por el mismo presupuesto", texto: "Una página enfocada convierte más visitas en mensajes que una portada con diez opciones." },
       { titulo: "Campañas medibles", texto: "Sabes cuánta gente llegó, cuánta escribió y desde qué anuncio, para invertir donde funciona." },
       { titulo: "Confianza al primer vistazo", texto: "Un diseño cuidado y rápido en el celular hace que tu oferta se vea seria desde el primer segundo." },
-      { titulo: "Velocidad para lanzar", texto: "Una landing se hace en menos tiempo que una web completa, así que puedes salir antes al mercado." },
+      { titulo: "Lista en días", texto: "Una landing la tenemos funcionando en días, así que puedes salir al mercado casi de inmediato." },
     ],
     incluye: [
       "Estructura y textos pensados para que la persona termine haciendo la acción que buscas.",
@@ -61,7 +61,7 @@ export const servicios: Servicio[] = [
     preguntas: [
       {
         pregunta: "¿Cuánto demora una landing page?",
-        respuesta: "Depende del contenido y de cuánto tengas listo (textos, fotos, logo). Una landing simple suele estar en pocas semanas. En la propuesta te damos el plazo exacto.",
+        respuesta: "Días. Si tienes listo el contenido (textos, fotos, logo), la landing queda publicada en pocos días. En la propuesta te damos la fecha exacta.",
       },
       {
         pregunta: "¿Puedo usarla después como parte de una web más grande?",
@@ -117,6 +117,10 @@ export const servicios: Servicio[] = [
       "Si vendes uno o dos productos y quieres probar antes de invertir, puede que te baste una landing page con un enlace de pago. Te lo decimos en la primera conversación.",
     preguntas: [
       {
+        pregunta: "¿Cuánto demora?",
+        respuesta: "Trabajamos con plazos breves. Depende de cuántos productos y funciones necesites; en la propuesta te damos la fecha exacta de entrega.",
+      },
+      {
         pregunta: "¿Qué medios de pago puedo tener?",
         respuesta: "Trabajamos con las pasarelas más usadas en Chile, como Webpay, Mercado Pago y Flow. Te ayudamos a elegir la que mejor calce con tu negocio.",
       },
@@ -169,6 +173,10 @@ export const servicios: Servicio[] = [
     ],
     preguntas: [
       {
+        pregunta: "¿Cuánto demora?",
+        respuesta: "Trabajamos con plazos breves. Depende de cuántas páginas y del contenido que tengas listo; en la propuesta te damos la fecha exacta.",
+      },
+      {
         pregunta: "¿Puedo actualizar la web después?",
         respuesta: "Sí. Según lo que necesites cambiar seguido, dejamos un panel para editar contenidos o nos encargamos nosotros con el plan de mantención.",
       },
@@ -220,6 +228,10 @@ export const servicios: Servicio[] = [
     ],
     preguntas: [
       {
+        pregunta: "¿Cuánto demora?",
+        respuesta: "Trabajamos con plazos breves y por etapas: la primera parte la puedes usar pronto y el resto se suma después. En la propuesta te damos las fechas de cada etapa.",
+      },
+      {
         pregunta: "¿En qué se diferencia de una web normal?",
         respuesta: "Una web muestra información. Una aplicación web permite hacer cosas: registrar, aprobar, calcular, reservar. Tiene usuarios, datos y reglas.",
       },
@@ -267,6 +279,10 @@ export const servicios: Servicio[] = [
     cuandoNo:
       "Si existe una herramienta en el mercado que resuelve bien lo que necesitas, te lo vamos a decir. Construir a medida tiene sentido cuando lo existente no calza.",
     preguntas: [
+      {
+        pregunta: "¿Cuánto demora?",
+        respuesta: "Trabajamos con plazos breves y por etapas, para que empieces a usarlo lo antes posible. En la propuesta te damos las fechas de cada etapa.",
+      },
       {
         pregunta: "¿Cómo saben qué construir?",
         respuesta: "Partimos conversando sobre cómo trabajas hoy, qué te quita tiempo y qué quieres lograr. Con eso armamos una propuesta por etapas.",
