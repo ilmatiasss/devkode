@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Icono } from "@/components/Iconos";
-import { Logo } from "@/components/Logo";
 import { MediosDePago } from "@/components/MediosDePago";
+import { PaginaInterna } from "@/components/PaginaInterna";
 import { servicioPorSlug, servicios } from "@/content/servicios";
 import { contact, site } from "@/content/site";
 
@@ -87,29 +87,11 @@ export default async function PaginaServicio({ params }: { params: Promise<{ slu
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datos).replace(/</g, "\\u003c") }} />
-      <header className="sticky top-0 z-50 border-b border-line bg-bg/90 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-5 md:px-8">
-          <a href="/" aria-label={`${site.name}, ir al inicio`}>
-            <Logo />
-          </a>
-          <nav aria-label="Principal" className="flex items-center gap-7 text-sm">
-            <a href="/#servicios" className="hidden text-muted transition-colors hover:text-fg md:inline">
-              Servicios
-            </a>
-            <a href="/#proyectos" className="hidden text-muted transition-colors hover:text-fg md:inline">
-              Proyectos
-            </a>
-            <a href="/#contacto" className="btn btn-primary px-4! py-2! text-sm">
-              Cotiza tu proyecto
-            </a>
-          </nav>
-        </div>
-      </header>
 
-      <main>
+      <PaginaInterna>
         <section>
           <div className="mx-auto max-w-[1200px] px-5 pt-14 pb-16 md:px-8 md:pt-20 md:pb-24">
-            <a href="/#servicios" className="text-sm text-muted transition-colors hover:text-fg">
+            <a href="/servicios" className="text-sm text-muted transition-colors hover:text-fg">
               <span aria-hidden="true">← </span>Todos los servicios
             </a>
             <div className="mt-10 max-w-4xl">
@@ -149,6 +131,16 @@ export default async function PaginaServicio({ params }: { params: Promise<{ slu
           <Lista items={servicio.paraQuien} />
         </Bloque>
 
+        <Bloque etiqueta="Ejemplos" titulo="Así se ve en la práctica">
+          <ul className="grid gap-3">
+            {servicio.ejemplos.map((e) => (
+              <li key={e} className="border border-line bg-surface/60 p-5 leading-relaxed">
+                {e}
+              </li>
+            ))}
+          </ul>
+        </Bloque>
+
         <section className="border-t border-line">
           <div className="mx-auto max-w-[1200px] px-5 py-14 md:px-8 md:py-20">
             <Etiqueta>Qué puede potenciar</Etiqueta>
@@ -175,6 +167,20 @@ export default async function PaginaServicio({ params }: { params: Promise<{ slu
               {servicio.cuandoNo}
             </p>
           ) : null}
+        </Bloque>
+
+        <Bloque etiqueta="Cómo lo hacemos" titulo="Cómo lo hacemos, paso a paso">
+          <ol className="space-y-6">
+            {servicio.pasos.map((p, i) => (
+              <li key={p.titulo} className="grid grid-cols-[2.5rem_1fr] gap-x-4">
+                <span className="grid size-10 place-items-center rounded-full border border-accent/60 font-mono text-sm text-accent">{i + 1}</span>
+                <div>
+                  <h3 className="text-lg font-medium tracking-tight text-fg md:text-xl">{p.titulo}</h3>
+                  <p className="mt-1 leading-relaxed">{p.texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </Bloque>
 
         <Bloque etiqueta="Preguntas frecuentes" titulo="Preguntas frecuentes">
@@ -236,23 +242,8 @@ export default async function PaginaServicio({ params }: { params: Promise<{ slu
             </ul>
           </div>
         </section>
-      </main>
+      </PaginaInterna>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-5 py-8 text-sm text-muted md:flex-row md:items-center md:justify-between md:px-8">
-          <nav aria-label="Páginas legales" className="flex gap-6">
-            <a href="/privacidad" className="transition-colors hover:text-fg">
-              Política de privacidad
-            </a>
-            <a href="/terminos" className="transition-colors hover:text-fg">
-              Términos y condiciones
-            </a>
-          </nav>
-          <p className="font-mono text-xs">
-            © {new Date().getFullYear()} {site.name} · {site.location}
-          </p>
-        </div>
-      </footer>
     </>
   );
 }

@@ -55,9 +55,9 @@ export const projectTypes = [
   "Aún no lo sé",
 ];
 
-export const nav = [
+export const nav: { label: string; href: string; siempre?: boolean }[] = [
   { label: "Proyectos", href: "#proyectos" },
-  { label: "Servicios", href: "#servicios" },
+  { label: "Servicios", href: "/servicios", siempre: true }, // visible también en celular
   { label: "Cómo trabajamos", href: "#proceso" },
 ];
 

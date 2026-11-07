@@ -26,6 +26,12 @@ export function Hero() {
             Cotiza tu proyecto <span aria-hidden="true">→</span>
           </a>
           <a
+            href="/servicios"
+            className="font-medium underline decoration-line decoration-2 underline-offset-[6px] transition-colors hover:decoration-accent"
+          >
+            Ver servicios
+          </a>
+          <a
             href="#proyectos"
             className="font-medium underline decoration-line decoration-2 underline-offset-[6px] transition-colors hover:decoration-accent"
           >

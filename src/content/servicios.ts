@@ -15,6 +15,8 @@ export type Servicio = {
   potencia: { titulo: string; texto: string }[];
   incluye: string[];
   cuandoNo?: string; // cuándo no es lo que necesitas (honestidad > venta)
+  ejemplos: string[]; // casos concretos, en lenguaje de negocio
+  pasos: { titulo: string; texto: string }[]; // cómo lo hacemos en este servicio
   preguntas: { pregunta: string; respuesta: string }[];
 };
 
@@ -58,6 +60,18 @@ export const servicios: Servicio[] = [
     ],
     cuandoNo:
       "Si necesitas mostrar muchos servicios distintos, tener un blog o vender un catálogo de productos, una landing se queda corta: ahí conviene una web corporativa o una tienda online.",
+    ejemplos: [
+      "Una clínica dental que lanza un descuento en blanqueamiento y lo promociona en Instagram: la landing explica la oferta y lleva directo a agendar por WhatsApp.",
+      "Un curso online que abre inscripciones: la página muestra el temario, al profesor y un botón para inscribirse y pagar.",
+      "Una inmobiliaria que lanza un proyecto nuevo: la landing reúne fotos, ubicación y un formulario para pedir información.",
+      "Un food truck que estrena menú de verano y quiere recibir pedidos para eventos.",
+    ],
+    pasos: [
+      { titulo: "Definimos el objetivo", texto: "Acordamos una sola acción: que te escriban, que se inscriban o que compren. Todo se diseña para eso." },
+      { titulo: "Ordenamos el mensaje", texto: "Con la información de tu negocio armamos los textos: qué ofreces, por qué elegirte y qué hacer ahora." },
+      { titulo: "Diseño y armado", texto: "La diseñamos pensando primero en el celular y te mostramos el avance para que opines." },
+      { titulo: "Publicación y medición", texto: "La dejamos en tu dominio, con el botón conectado a WhatsApp, al formulario o al pago, y lista para medir resultados." },
+    ],
     preguntas: [
       {
         pregunta: "¿Cuánto demora una landing page?",
@@ -115,6 +129,18 @@ export const servicios: Servicio[] = [
     ],
     cuandoNo:
       "Si vendes uno o dos productos y quieres probar antes de invertir, puede que te baste una landing page con un enlace de pago. Te lo decimos en la primera conversación.",
+    ejemplos: [
+      "Un taller de detailing que vende sus productos de limpieza a todo Chile, con despacho y retiro en tienda.",
+      "Una pyme de ropa que hoy vende por Instagram y responde precios uno por uno: con la tienda, el cliente ve tallas, stock y paga solo.",
+      "Una tienda de repuestos con cientos de productos, ordenados por marca y modelo para encontrarlos rápido.",
+      "Una marca de alimentos que suma la venta en línea a sus puntos de venta físicos.",
+    ],
+    pasos: [
+      { titulo: "Conocemos tu negocio", texto: "Revisamos qué vendes, cómo despachas, qué medios de pago te convienen y cómo manejas el stock hoy." },
+      { titulo: "Diseño de la tienda", texto: "Diseñamos el catálogo y el proceso de compra para que comprar sea simple, sobre todo desde el celular." },
+      { titulo: "Pagos, despacho y panel", texto: "Conectamos el medio de pago, configuramos el despacho y te dejamos el panel para cargar productos y ver pedidos." },
+      { titulo: "Lanzamiento y acompañamiento", texto: "Hacemos compras de prueba, publicamos la tienda y te enseñamos a usarla. Después seguimos disponibles." },
+    ],
     preguntas: [
       {
         pregunta: "¿Cuánto demora?",
@@ -171,6 +197,18 @@ export const servicios: Servicio[] = [
       "Textos ordenados para que se entienda qué haces en pocos segundos.",
       "Publicación en tu dominio y correo corporativo, si lo necesitas.",
     ],
+    ejemplos: [
+      "Una constructora que necesita mostrar sus obras y recibir solicitudes de cotización de otras empresas.",
+      "Un estudio contable que quiere explicar sus servicios y que los clientes lo encuentren en Google.",
+      "Un taller mecánico con una web antigua que no se ve bien en el celular y quiere renovarla.",
+      "Una consultora que se presenta a licitaciones y necesita verse seria ante sus clientes.",
+    ],
+    pasos: [
+      { titulo: "Qué quieres comunicar", texto: "Conversamos sobre tu empresa, tus clientes y qué deberían entender al entrar a tu web." },
+      { titulo: "Estructura y contenido", texto: "Definimos las páginas y te ayudamos a ordenar los textos y las fotos." },
+      { titulo: "Diseño y desarrollo", texto: "Creamos un diseño a medida con tu identidad y te mostramos avances antes de terminar." },
+      { titulo: "Publicación", texto: "La publicamos en tu dominio, con formulario, WhatsApp y lo necesario para aparecer en Google." },
+    ],
     preguntas: [
       {
         pregunta: "¿Cuánto demora?",
@@ -226,6 +264,18 @@ export const servicios: Servicio[] = [
       "Diseño pensado para que se use fácil, también en el celular.",
       "Entrega por etapas, para que empieces a usarla antes.",
     ],
+    ejemplos: [
+      "Un sistema de reservas para un centro deportivo, donde los clientes eligen horario y el equipo ve la agenda del día.",
+      "Un portal para que los clientes de una distribuidora hagan pedidos y revisen el estado de sus despachos.",
+      "Un panel interno para registrar ventas, gastos y ver los números del mes sin planillas.",
+      "Una herramienta para que técnicos en terreno registren sus visitas desde el celular.",
+    ],
+    pasos: [
+      { titulo: "Entendemos el proceso", texto: "Vemos cómo se hace hoy, quiénes participan y dónde se pierde tiempo o se cometen errores." },
+      { titulo: "Primera etapa útil", texto: "Definimos la parte que más valor te da y partimos por ahí, para que la uses pronto." },
+      { titulo: "Desarrollo con avances", texto: "Te mostramos versiones de prueba para ajustar antes de usarla en el día a día." },
+      { titulo: "Puesta en marcha y mejoras", texto: "La dejamos funcionando, acompañamos a tu equipo al empezar y la ampliamos por etapas." },
+    ],
     preguntas: [
       {
         pregunta: "¿Cuánto demora?",
@@ -278,6 +328,18 @@ export const servicios: Servicio[] = [
     ],
     cuandoNo:
       "Si existe una herramienta en el mercado que resuelve bien lo que necesitas, te lo vamos a decir. Construir a medida tiene sentido cuando lo existente no calza.",
+    ejemplos: [
+      "Un cotizador que calcula precios con las reglas propias de tu empresa y genera el documento listo para enviar.",
+      "Una conexión entre tu tienda online y tu sistema de facturación para no ingresar dos veces cada venta.",
+      "Un sistema de control de inventario hecho a la medida de cómo trabaja tu bodega.",
+      "Reportes automáticos que llegan cada lunes con los números de la semana.",
+    ],
+    pasos: [
+      { titulo: "Diagnóstico", texto: "Conversamos sobre el problema que quieres resolver y revisamos si ya existe algo en el mercado que te sirva." },
+      { titulo: "Propuesta por etapas", texto: "Si conviene construirlo, te proponemos etapas con alcance y fechas por escrito." },
+      { titulo: "Construcción", texto: "Desarrollamos cada etapa mostrándote avances, para corregir el rumbo a tiempo." },
+      { titulo: "Entrega y acompañamiento", texto: "Lo dejamos funcionando, te explicamos cómo usarlo y seguimos disponibles para ajustes." },
+    ],
     preguntas: [
       {
         pregunta: "¿Cuánto demora?",
@@ -327,6 +389,17 @@ export const servicios: Servicio[] = [
       "Respaldos y actualizaciones de seguridad.",
       "Cambios de contenido y ajustes menores cada mes.",
       "Soporte directo por WhatsApp o correo.",
+    ],
+    ejemplos: [
+      "Una tienda online que necesita estar siempre disponible y con los precios al día.",
+      "Un negocio que cambia sus promociones cada mes y prefiere que nosotros las actualicemos.",
+      "Una empresa que no quiere preocuparse de renovar el dominio, el hosting ni los certificados de seguridad.",
+    ],
+    pasos: [
+      { titulo: "Revisamos tu sitio", texto: "Vemos cómo está hecho, dónde está alojado y qué servicios hay que mantener al día." },
+      { titulo: "Acordamos el plan", texto: "Definimos qué incluye la mantención mensual y cómo nos pides los cambios." },
+      { titulo: "Nos hacemos cargo", texto: "Pagamos y renovamos los servicios técnicos, vigilamos que el sitio funcione y hacemos los ajustes." },
+      { titulo: "Te mantenemos al tanto", texto: "Te avisamos de lo importante y te proponemos mejoras cuando vemos oportunidades." },
     ],
     preguntas: [
       {

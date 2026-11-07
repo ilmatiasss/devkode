@@ -9,9 +9,9 @@ export function Header() {
           <Logo />
         </a>
 
-        <nav aria-label="Principal" className="flex items-center gap-7 text-sm">
+        <nav aria-label="Principal" className="flex items-center gap-5 text-sm md:gap-7">
           {nav.map((item) => (
-            <a key={item.href} href={item.href} className="hidden text-muted transition-colors hover:text-fg md:inline">
+            <a key={item.href} href={item.href} className={`text-muted transition-colors hover:text-fg ${item.siempre ? "" : "hidden md:inline"}`}>
               {item.label}
             </a>
           ))}

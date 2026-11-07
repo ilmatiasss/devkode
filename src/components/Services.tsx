@@ -38,6 +38,9 @@ export function Services() {
           </li>
         ))}
       </ol>
+      <a href="/servicios" className="btn btn-primary mt-10">
+        Ver todos los servicios <span aria-hidden="true">→</span>
+      </a>
     </Section>
   );
 }
