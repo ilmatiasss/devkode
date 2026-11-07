@@ -37,7 +37,7 @@ export function Contact() {
                 <h2 className="text-balance text-[clamp(2.2rem,5.4vw,4.5rem)] font-medium leading-[1.02] tracking-[-0.035em]">
                   {formEnabled ? "Pide tu cotización." : "¿Tienes un proyecto en mente?"}
                 </h2>
-                <p className="mt-6 max-w-xl text-lg leading-relaxed opacity-80">
+                <p className="mt-6 max-w-xl text-lg leading-relaxed opacity-90">
                   {formEnabled
                     ? "Cuéntanos qué necesitas, aunque todavía no lo tengas del todo claro. Te respondemos con una propuesta."
                     : "Cuéntanos qué necesitas, aunque todavía no lo tengas del todo claro. Lo vemos juntos y te enviamos una propuesta."}
@@ -45,7 +45,7 @@ export function Contact() {
 
                 {formEnabled ? (
                   <p className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                    <span className="opacity-80">¿Prefieres escribir directo?</span>
+                    <span className="opacity-90">¿Prefieres escribir directo?</span>
                     <a
                       href={`mailto:${contact.email}`}
                       className="font-mono underline decoration-2 underline-offset-[6px]"

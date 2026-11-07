@@ -121,21 +121,29 @@ export const projects: Project[] = [
   },
 ];
 
-export const steps: { title: string; description: string }[] = [
+export const steps: { title: string; description: string; icono: string; plazo: string }[] = [
   {
     title: "Conversamos",
     description: "Nos cuentas qué necesitas y qué quieres lograr. Si con algo simple te basta, te lo decimos.",
+    icono: "conversamos",
+    plazo: "Sin costo",
   },
   {
     title: "Propuesta",
     description: "Te enviamos por escrito el alcance, los plazos y la cotización.",
+    icono: "propuesta",
+    plazo: "En pocos días",
   },
   {
     title: "Diseño y desarrollo",
     description: "Te mostramos avances para que puedas opinar antes de que algo quede terminado.",
+    icono: "desarrollo",
+    plazo: "Una landing, en días",
   },
   {
     title: "Publicación",
     description: "Dejamos el sitio funcionando en tu dominio y seguimos disponibles para cambios y mantención.",
+    icono: "publicacion",
+    plazo: "Y seguimos contigo",
   },
 ];

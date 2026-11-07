@@ -9,7 +9,7 @@
   --color-surface: #121214;
   --color-line: #26262a;
   --color-fg: #ededee;
-  --color-muted: #a1a1a9;
+  --color-muted: #b4b4bc; /* gris de textos secundarios: con buen contraste para leer cómodo */
   --color-accent: #9b72ff;
   --color-accent-soft: #c4adff; /* tono claro del acento: travesaños del globo */
   --color-on-accent: #0b0b0c; /* color del texto sobre el acento */

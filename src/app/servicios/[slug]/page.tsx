@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Icono } from "@/components/Iconos";
 import { Logo } from "@/components/Logo";
+import { MediosDePago } from "@/components/MediosDePago";
 import { servicioPorSlug, servicios } from "@/content/servicios";
 import { contact, site } from "@/content/site";
 
@@ -111,10 +113,19 @@ export default async function PaginaServicio({ params }: { params: Promise<{ slu
               <span aria-hidden="true">← </span>Todos los servicios
             </a>
             <div className="mt-10 max-w-4xl">
-              <Etiqueta>Servicio</Etiqueta>
+              <span className="grid size-16 place-items-center rounded-full border border-accent/60 text-accent md:size-20">
+                <Icono nombre={servicio.slug} className="size-8 md:size-10" />
+              </span>
+              <div className="mt-8">
+                <Etiqueta>Servicio</Etiqueta>
+              </div>
               <h1 className="mt-5 text-balance text-[clamp(2.6rem,7vw,5.5rem)] font-medium leading-[0.98] tracking-[-0.04em]">{servicio.titulo}</h1>
               <p className="mt-8 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">{servicio.bajada}</p>
-              {servicio.etiquetas ? <p className="mt-5 font-mono text-xs text-fg">{servicio.etiquetas.join(" · ")}</p> : null}
+              {servicio.etiquetas ? (
+                <div className="mt-6">
+                  <MediosDePago nombres={servicio.etiquetas} grande />
+                </div>
+              ) : null}
               <a href="/#contacto" className="btn btn-primary mt-10">
                 Conversemos tu proyecto
               </a>
@@ -214,7 +225,8 @@ export default async function PaginaServicio({ params }: { params: Promise<{ slu
               {otros.map((s) => (
                 <li key={s.slug} className="border border-line">
                   <a href={`/servicios/${s.slug}`} className="group block h-full p-6 transition-colors hover:bg-surface">
-                    <h3 className="text-lg font-medium tracking-tight transition-colors group-hover:text-accent">
+                    <Icono nombre={s.slug} className="size-6 text-accent" />
+                    <h3 className="mt-4 text-lg font-medium tracking-tight transition-colors group-hover:text-accent">
                       {s.titulo} <span aria-hidden="true">→</span>
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted">{s.resumen}</p>

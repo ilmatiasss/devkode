@@ -39,7 +39,7 @@ export function Projects() {
 
               <div className="flex min-w-0 flex-1 flex-col md:mt-7 md:items-center">
                 <h3 className="text-xl font-medium tracking-tight md:text-2xl">{project.name}</h3>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-3 font-mono text-[11px] text-muted md:mt-1 md:justify-center md:text-xs">
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-3 font-mono text-xs text-muted md:mt-1 md:justify-center md:text-[13px]">
                   {project.kind}
                   <span className="flex items-center gap-1.5">
                     <span
@@ -50,7 +50,7 @@ export function Projects() {
                     <span className={project.status ? "text-accent" : undefined}>{project.status ?? "En línea"}</span>
                   </span>
                 </p>
-                <p className="mt-1.5 text-sm leading-snug text-muted md:mt-4 md:max-w-[17rem] md:text-base md:leading-relaxed lg:text-[15px]">
+                <p className="mt-1.5 text-[15px] leading-snug text-muted md:mt-4 md:max-w-[17rem] md:text-base md:leading-relaxed">
                   {project.description}
                 </p>
                 {project.href ? (

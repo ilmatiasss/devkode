@@ -79,7 +79,7 @@ export const servicios: Servicio[] = [
     titulo: "Tiendas online",
     resumen:
       "Catálogo, carrito, pagos y despacho, más un panel para que tú mismo cargues productos y revises pedidos, sin tener que llamarnos cada vez.",
-    etiquetas: ["Webpay", "Mercado Pago", "Flow"],
+    etiquetas: ["Webpay", "Mercado Pago", "Flow", "Klap"],
     bajada:
       "Una tienda online (e-commerce) es tu local abierto las 24 horas: tus clientes ven el catálogo, eligen, pagan con tarjeta y tú recibes el pedido listo para despachar.",
     queEs: [
@@ -106,7 +106,7 @@ export const servicios: Servicio[] = [
     ],
     incluye: [
       "Catálogo con categorías, fotos, variantes (tallas, colores) y buscador.",
-      "Carrito y pago en línea con Webpay, Mercado Pago o Flow.",
+      "Carrito y pago en línea con Webpay, Mercado Pago, Flow o Klap.",
       "Opciones de despacho y retiro en tienda.",
       "Panel de administración para productos, stock, precios y pedidos.",
       "Correos automáticos de confirmación de compra.",
@@ -122,7 +122,7 @@ export const servicios: Servicio[] = [
       },
       {
         pregunta: "¿Qué medios de pago puedo tener?",
-        respuesta: "Trabajamos con las pasarelas más usadas en Chile, como Webpay, Mercado Pago y Flow. Te ayudamos a elegir la que mejor calce con tu negocio.",
+        respuesta: "Trabajamos con las pasarelas más usadas en Chile, como Webpay, Mercado Pago, Flow y Klap. Te ayudamos a elegir la que mejor calce con tu negocio.",
       },
       {
         pregunta: "¿Puedo cargar los productos yo mismo?",
